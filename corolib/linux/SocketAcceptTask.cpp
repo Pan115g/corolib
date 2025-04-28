@@ -28,12 +28,13 @@ namespace corolib
             throw std::system_error(
                 errorCode,
                 std::system_category(),
-                "Error registering socket with epoll");
+                "Error registering socket with epoll in SocketAcceptTask::start()");
         }
 
         int res = ::accept(mAcceptingSocket.getSocketHandle(), nullptr, nullptr);
         if (res != -1)
         {
+            mSkipped = true;
             mAcceptedSocket.setSocketHandle(res);
             return false;
         }
@@ -44,13 +45,18 @@ namespace corolib
             throw std::system_error(
                 errorCode,
                 std::system_category(),
-                "Error accepting socket: accept()");
+                "Error accepting socket: SocketAcceptTask::accept()");
         }
         return true;
     }
 
     void SocketAcceptTask::getResult()
     {            
+        if (mSkipped)
+        {
+            return;
+        }
+        
         sockaddr localSockaddr;
         sockaddr remoteSockaddr;
         socklen_t localSockaddrLen = sizeof(localSockaddr);
@@ -64,7 +70,7 @@ namespace corolib
             throw std::system_error{
                 errorCode,
                 std::system_category(),
-                "Socket accept failed: accept()"
+                "Socket accept failed: SocketAcceptTask::getResult()"
             };
         }
         mAcceptedSocket.setSocketHandle(acceptedSocket);

@@ -50,6 +50,7 @@ namespace corolib
         
     protected:
         uint32_t mEvents;
+        bool mSkipped{false};
     };
 }
 

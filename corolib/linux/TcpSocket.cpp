@@ -26,22 +26,25 @@ namespace corolib
         }
         mSocketHandle = s;
 
-        epoll_event ev = { 0, { 0 } };
-        ev.events = Default_Events;
-        if (0 != epoll_ctl(ioEventHandler.getEpollFileDescriptor(), EPOLL_CTL_ADD, mSocketHandle, &ev))
-        {
-            const int errorCode = errno;
-            throw std::system_error(
-                errorCode,
-                std::system_category(),
-                "Error registering socket with epoll");
-        }
+        setNonBlockingMode();
+        
+        registerWithEpoll();
 
         mInitialized = true;
     }
     
     TcpSocket::TcpSocket(IoEventHandler& ioEventHandler, int socketHandle) 
     : mIoEventHandler{ioEventHandler}, mSocketHandle{socketHandle} {}
+
+    TcpSocket::~TcpSocket()
+    {
+        if (mSocketHandle != Invalid_Socket)
+        {
+            unregisterWithEpoll();
+            ::close(mSocketHandle);
+            mSocketHandle = Invalid_Socket;
+        }
+    }
 
     void TcpSocket::bind(const uint8_t ip[4], const uint16_t port)
     {
@@ -56,15 +59,6 @@ namespace corolib
                 errorCode,
                 std::system_category(),
                 "Error binding socket: bind()");
-        }
-
-        if (::fcntl(mSocketHandle, F_SETFL, O_NONBLOCK) < 0) 
-        {
-            int errorCode = errno;
-            throw std::system_error(
-                errorCode,
-                std::system_category(),
-                "Error binding socket: fcntl()");
         }
 
         uint8_t localIp[4];
@@ -88,8 +82,50 @@ namespace corolib
         }
     }
 
-    SocketAcceptTask TcpSocket::accept(TcpSocket& acceptedSocket)
+    void TcpSocket::setSocketHandle(int socketHandle)
     {
-        return SocketAcceptTask(mIoEventHandler, *this, acceptedSocket);
+        mSocketHandle = socketHandle;
+
+        setNonBlockingMode();
+        registerWithEpoll();
+    }
+
+    void TcpSocket::setNonBlockingMode()
+    {
+        if (::fcntl(mSocketHandle, F_SETFL, O_NONBLOCK) < 0) 
+        {
+            int errorCode = errno;
+            throw std::system_error(
+                errorCode,
+                std::system_category(),
+                "Error binding socket: fcntl()");
+        }
+    }
+
+    void TcpSocket::registerWithEpoll()
+    {
+        epoll_event ev = { 0, { 0 } };
+        ev.events = Default_Events;
+        if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_ADD, mSocketHandle, &ev))
+        {
+            const int errorCode = errno;
+            throw std::system_error(
+                errorCode,
+                std::system_category(),
+                "Error registering socket with epoll");
+        }
+    }
+
+    void TcpSocket::unregisterWithEpoll()
+    {
+        epoll_event ev = { 0, { 0 } };
+        if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_DEL, mSocketHandle, &ev))
+        {
+            const int errorCode = errno;
+            throw std::system_error(
+                errorCode,
+                std::system_category(),
+                "Error unregistering socket with epoll");
+        }
     }
 }
