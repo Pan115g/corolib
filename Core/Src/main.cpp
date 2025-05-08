@@ -22,8 +22,11 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
+#include <array>
 #include "corolib/Awaitable.h"
 #include "CUartAdapter.h"
+#include "CIrqCallback.h"
+#include "CUartReadTask.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,14 +55,18 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
 
-corolib::Awaitable<> foo()
+corolib::Awaitable<int> foo()
 {
-	co_return;
+    co_return 32;
 }
-
-corolib::Awaitable<> bar()
+char msg1[] = "readUart 1\n";
+char msg2[] = "readUart 2\n";
+corolib::Awaitable<> readUart(corolib::CUartAdapter& uart)
 {
-	co_await foo();
+    std::array<uint8_t, 10> buffer;
+    uint32_t numOfBytes = co_await corolib::CUartReadTask(uart, buffer);
+    uart.write({buffer.data(), numOfBytes});
+    numOfBytes = co_await corolib::CUartReadTask(uart, buffer);
 }
 /* USER CODE END PFP */
 
@@ -99,22 +106,36 @@ int main(void)
   MX_GPIO_Init();
   //MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  bar().resume();
-  CUartAdapter uartAdapter(USART2, 115200);
-  uartAdapter.registerMessageReceived([&uartAdapter](const uint8_t* data, const uint32_t size){
-      uartAdapter.write(data, size);
+
+  corolib::CUartAdapter uartAdapter(USART2, 115200, '\r');
+  if (!uartAdapter.isInitialized())
+  {
+      return 0;
+  }
+
+  CIrqCallback::getInstance().registerUart2IRQHandler([&uartAdapter]() {
+      uartAdapter.irqHandler();
   });
+  CIrqCallback::getInstance().registerUart2RxCallback([&uartAdapter](){
+      uartAdapter.dataReceived();
+  });
+
+
   char user_data[] = "The application is running\r\n";
   uint16_t len_of_data = strlen(user_data);
-  uartAdapter.write((uint8_t*)user_data, len_of_data);
+  //uartAdapter.write({(uint8_t*)user_data, len_of_data});
+
+  auto task = readUart(uartAdapter);
+  task.resume();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
     /* USER CODE END WHILE */
-      uartAdapter.read();
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
