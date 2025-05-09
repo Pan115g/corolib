@@ -10,17 +10,17 @@
 
 namespace corolib
 {
-    CUartAdapter::CUartAdapter(void* handle, const uint32_t baud, const uint8_t delimiter)
-    : mDelimiter{delimiter}, mMessageReceived{}
+    CUartAdapter::CUartAdapter(USART_TypeDef *handle, const uint32_t baud, const uint8_t delimiter)
+    : mUart{handle}, mDelimiter{delimiter}, mMessageReceived{}
     {
-        memset(&mUart, 0, sizeof(mUart));
-        mUart.Instance = static_cast<USART_TypeDef*>(handle);
+        mUart.Instance = handle;
         mUart.Init.BaudRate = baud;
         mUart.Init.WordLength = UART_WORDLENGTH_8B;
         mUart.Init.StopBits = UART_STOPBITS_1;
         mUart.Init.Parity = UART_PARITY_NONE;
         mUart.Init.Mode = UART_MODE_TX_RX;
         mUart.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+        mUart.Init.OverSampling = UART_OVERSAMPLING_16;
 
         mInitialized = HAL_UART_Init(&mUart) == HAL_OK;
     }

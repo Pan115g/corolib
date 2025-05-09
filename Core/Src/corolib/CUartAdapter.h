@@ -17,7 +17,7 @@ namespace corolib
     class CUartAdapter
     {
     public:
-        CUartAdapter(void* handle, const uint32_t baud, const uint8_t delimiter);
+        CUartAdapter(USART_TypeDef *handle, const uint32_t baud, const uint8_t delimiter);
 
         bool isInitialized(){return mInitialized;};
 
@@ -29,8 +29,9 @@ namespace corolib
 
         void irqHandler();
         void dataReceived();
-    private:
+
         UART_HandleTypeDef mUart;
+        private:
         uint8_t mDelimiter;
         bool mInitialized {false};
         uint8_t* mBuffer;

@@ -10,6 +10,7 @@
 
 #include <coroutine>
 #include <cstdint>
+#include "CTaskScheduler.h"
 
 namespace corolib {
     struct CAwaitableIoTaskBase
@@ -26,8 +27,8 @@ namespace corolib {
     class CAwaitableIoTask : public CAwaitableIoTaskBase
     {
     public:
-        explicit CAwaitableIoTask() noexcept : CAwaitableIoTaskBase{&CAwaitableIoTask<T>::onTaskCompleted},
-        mAwaitingCoroutine{}, mEvents{0} {}
+        explicit CAwaitableIoTask(CTaskScheduler& scheduler) noexcept : CAwaitableIoTaskBase{&CAwaitableIoTask<T>::onTaskCompleted},
+        mAwaitingCoroutine{}, mEvents{0}, mScheduler{scheduler} {}
 
         bool await_ready() const noexcept { return false; }
 
@@ -55,7 +56,7 @@ namespace corolib {
         {
             auto awaitableTask = static_cast<CAwaitableIoTask<T>*>(task);
             awaitableTask->mEvents = events;
-            awaitableTask->mAwaitingCoroutine.resume();
+            awaitableTask->mScheduler.schedule(awaitableTask->mAwaitingCoroutine);
         }
 
         std::coroutine_handle<> mAwaitingCoroutine;
@@ -63,6 +64,7 @@ namespace corolib {
     protected:
         uint32_t mEvents;
         bool mSkipped{false};
+        CTaskScheduler& mScheduler;
     };
 } /* namespace corolib */
 

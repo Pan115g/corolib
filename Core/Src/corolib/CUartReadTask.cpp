@@ -10,8 +10,9 @@
 
 namespace corolib
 {
-    CUartReadTask::CUartReadTask(CUartAdapter &uartAdapter, std::span<uint8_t> buffer)
-    : mUartAdapter{uartAdapter}, mBuffer{buffer}
+    CUartReadTask::CUartReadTask(CTaskScheduler& scheduler, CUartAdapter &uartAdapter, std::span<uint8_t> buffer)
+    : CAwaitableIoTask<CUartReadTask>{scheduler},
+    mUartAdapter{uartAdapter}, mBuffer{buffer}
     {
     }
 
@@ -22,8 +23,7 @@ namespace corolib
     bool CUartReadTask::start()
     {
         mUartAdapter.registerMessageReceived([this](const uint8_t* data, const uint32_t size){
-            mNumOfBytesReceived = size;
-            mCallback(this, 0);
+            mCallback(this, size);
         });
 
         if (mUartAdapter.read(mBuffer))
@@ -40,6 +40,7 @@ namespace corolib
         {
             return 0;
         }
+        mNumOfBytesReceived = mEvents;
         return mNumOfBytesReceived;
     }
 }

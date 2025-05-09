@@ -1,7 +1,7 @@
 
 #include "CIrqCallback.h"
-
-#include "stm32f4xx_hal.h"
+#include "CUartAdapter.h"
+#include "CDeviceCreator.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,5 +77,10 @@ CIrqCallback& CIrqCallback::getInstance()
     return aIrqCallback;
 }
 
-CIrqCallback::CIrqCallback() : mUart2IRQHandler{}, mUart2RxCallback {}, mUart2TxCallback {} {}
+std::function<void()> CIrqCallback::mUart2IRQHandler;
+std::function<void()> CIrqCallback::mUart2RxCallback;
+std::function<void()> CIrqCallback::mUart2TxCallback;
+CIrqCallback::CIrqCallback()
+{
+}
 

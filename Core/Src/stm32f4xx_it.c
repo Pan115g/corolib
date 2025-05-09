@@ -55,6 +55,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern UART_HandleTypeDef huart2;
 extern TIM_HandleTypeDef htim5;
 
 /* USER CODE BEGIN EV */
@@ -158,6 +159,11 @@ void DebugMon_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
+
+/**
+  * @brief This function handles USART2 global interrupt.
+  */
+
 
 /**
   * @brief This function handles TIM5 global interrupt.

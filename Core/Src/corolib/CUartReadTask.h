@@ -14,11 +14,12 @@
 namespace corolib {
 
     class CUartAdapter;
+    class CTaskScheduler;
 
     class CUartReadTask : public CAwaitableIoTask<CUartReadTask>
     {
     public:
-        explicit CUartReadTask(CUartAdapter &uartAdapter, std::span<uint8_t> buffer);
+        explicit CUartReadTask(CTaskScheduler& scheduler, CUartAdapter &uartAdapter, std::span<uint8_t> buffer);
         virtual ~CUartReadTask();
 
         bool start();

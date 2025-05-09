@@ -18,7 +18,8 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
+#include "stm32f4xx_it.h"
+#include "cmsis_os.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
@@ -27,6 +28,9 @@
 #include "CUartAdapter.h"
 #include "CIrqCallback.h"
 #include "CUartReadTask.h"
+#include "CTaskScheduler.h"
+#include "CDeviceCreator.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,17 +63,68 @@ corolib::Awaitable<int> foo()
 {
     co_return 32;
 }
-char msg1[] = "readUart 1\n";
-char msg2[] = "readUart 2\n";
-corolib::Awaitable<> readUart(corolib::CUartAdapter& uart)
+
+corolib::Awaitable<> readUart(corolib::CTaskScheduler &scheduler, corolib::CUartAdapter& uart)
 {
     std::array<uint8_t, 10> buffer;
-    uint32_t numOfBytes = co_await corolib::CUartReadTask(uart, buffer);
+    uint32_t numOfBytes = co_await corolib::CUartReadTask(scheduler, uart, buffer);
     uart.write({buffer.data(), numOfBytes});
-    numOfBytes = co_await corolib::CUartReadTask(uart, buffer);
+    //numOfBytes = co_await corolib::CUartReadTask(scheduler, uart, buffer);
 }
 /* USER CODE END PFP */
+UART_HandleTypeDef huart2;
+#define TRUE 1
+#define FALSE 0
+std::array<uint8_t, 10> buffer;
+uint8_t  data_buffer[100];
+uint8_t  recvd_data;
+uint32_t count=0;
+uint8_t  reception_complete = FALSE;
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+/*
+void USART2_IRQHandler(void)
+{
+    HAL_UART_IRQHandler(&uartAdapter_g->mUart);
+}
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if(recvd_data == '\r')
+  {
+    reception_complete = TRUE;
+    data_buffer[count++]='\r';
+    HAL_UART_Transmit(huart,data_buffer,count,HAL_MAX_DELAY);
+  }
+  else
+  {
+    data_buffer[count++] = recvd_data;
+    HAL_UART_Receive_IT(huart, &recvd_data, 1UL);
+  }
+}*/
+#ifdef __cplusplus
+}
+#endif
+/*
+static void MX_USART2_UART_Init(void)
+{
+
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+}*/
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
@@ -104,15 +159,15 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+
   //MX_USART2_UART_Init();
-  /* USER CODE BEGIN 2 */
 
-  corolib::CUartAdapter uartAdapter(USART2, 115200, '\r');
-  if (!uartAdapter.isInitialized())
-  {
-      return 0;
-  }
+  //HAL_UART_Transmit(&uartAdapter_g->mUart,(uint8_t*)user_data,len_of_data,HAL_MAX_DELAY);
 
+  //HAL_UART_Receive_IT(&uartAdapter_g->mUart, &recvd_data, 1UL);
+  //corolib::CTaskScheduler scheduler;
+
+/*
   CIrqCallback::getInstance().registerUart2IRQHandler([&uartAdapter]() {
       uartAdapter.irqHandler();
   });
@@ -120,18 +175,23 @@ int main(void)
       uartAdapter.dataReceived();
   });
 
+  uartAdapter.registerMessageReceived([&uartAdapter](const uint8_t* data, const uint32_t size){
+      uartAdapter.write({(uint8_t*)data, size});
+  });*/
 
-  char user_data[] = "The application is running\r\n";
-  uint16_t len_of_data = strlen(user_data);
-  //uartAdapter.write({(uint8_t*)user_data, len_of_data});
+  osKernelInitialize();
 
-  auto task = readUart(uartAdapter);
-  task.resume();
+  CDeviceCreator::getInstance().getUart2().read(buffer);
+  //auto task = readUart(scheduler, uartAdapter);
+  //task.resume();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  osKernelStart();
+
+  //if we come here, we have enough heap.
   while (1)
   {
     /* USER CODE END WHILE */
