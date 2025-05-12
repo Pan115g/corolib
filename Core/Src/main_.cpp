@@ -59,20 +59,37 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 /* USER CODE BEGIN PFP */
 
-corolib::Awaitable<int> foo()
-{
-    co_return 32;
-}
 
-corolib::Awaitable<> readUart(corolib::CTaskScheduler &scheduler, corolib::CUartAdapter& uart)
-{
-    std::array<uint8_t, 10> buffer;
-    uint32_t numOfBytes = co_await corolib::CUartReadTask(scheduler, uart, buffer);
-    uart.write({buffer.data(), numOfBytes});
-    //numOfBytes = co_await corolib::CUartReadTask(scheduler, uart, buffer);
-}
 /* USER CODE END PFP */
 UART_HandleTypeDef huart2;
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
+struct TestAtomic
+{
+    TestAtomic() : mQueueHead{0},mQueueTail{0}, mShutdownRequested{0} {}
+
+    std::atomic<uint32_t> mQueueHead;
+    std::atomic<uint32_t> mQueueTail;
+    std::atomic<uint8_t> mShutdownRequested;
+};
+
+void StartDefaultTask(void *argument)
+{
+    uint32_t head, tail;
+    uint8_t tmp;
+    for(;;)
+    {
+        TestAtomic* self = static_cast<TestAtomic*>(argument);
+        head = self->mQueueHead.load(std::memory_order_acquire);
+        tail = self->mQueueTail.load(std::memory_order_acquire);
+        tmp = self->mShutdownRequested.load(std::memory_order_relaxed);
+    }
+}
+
 #define TRUE 1
 #define FALSE 0
 std::array<uint8_t, 10> buffer;
@@ -82,9 +99,38 @@ uint32_t count=0;
 uint8_t  reception_complete = FALSE;
 
 
+void testReceive(corolib::CUartAdapter& uart)
+{
+//    HAL_UART_Receive_IT(&uart.mUart, &recvd_data, 1UL);
+    uart.read(buffer);
+}
+
+corolib::Awaitable<> readUart(corolib::CTaskScheduler &scheduler, corolib::CUartAdapter& uart)
+{
+    static std::array<uint8_t, 128> buffer_loc;
+    char user_data[] = "Testing coroutine\n";
+    HAL_UART_Transmit(&uart.mUart,(uint8_t*)user_data,strlen(user_data),HAL_MAX_DELAY);
+    for(int i = 0; i < 10; i++)
+    {
+        uint32_t numOfBytes = co_await corolib::CUartReadTask(uart, buffer_loc);
+        co_await scheduler.schedule();
+        uart.write({buffer_loc.data(), numOfBytes});
+    }
+    //numOfBytes = co_await corolib::CUartReadTask(scheduler, uart, buffer);
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+void vApplicationStackOverflowHook (TaskHandle_t xTask, signed char *pcTaskName)
+{
+    while(1)
+    {
+
+    }
+}
+
 /*
 void USART2_IRQHandler(void)
 {
@@ -165,7 +211,7 @@ int main(void)
   //HAL_UART_Transmit(&uartAdapter_g->mUart,(uint8_t*)user_data,len_of_data,HAL_MAX_DELAY);
 
   //HAL_UART_Receive_IT(&uartAdapter_g->mUart, &recvd_data, 1UL);
-  //corolib::CTaskScheduler scheduler;
+
 
 /*
   CIrqCallback::getInstance().registerUart2IRQHandler([&uartAdapter]() {
@@ -180,10 +226,14 @@ int main(void)
   });*/
 
   osKernelInitialize();
-
-  CDeviceCreator::getInstance().getUart2().read(buffer);
-  //auto task = readUart(scheduler, uartAdapter);
-  //task.resume();
+  static corolib::CTaskScheduler scheduler;
+  /*static TestAtomic test_ato;
+  uint32_t head = test_ato.mQueueHead.load(std::memory_order_acquire);
+  uint32_t tail = test_ato.mQueueTail.load(std::memory_order_acquire);
+  defaultTaskHandle = osThreadNew(StartDefaultTask, static_cast<void*>(&test_ato), &defaultTask_attributes);*/
+  //testReceive(CDeviceCreator::getInstance().getUart2());
+  auto task = readUart(scheduler, CDeviceCreator::getInstance().getUart2());
+  task.resume();
   /* USER CODE END 2 */
 
   /* Infinite loop */

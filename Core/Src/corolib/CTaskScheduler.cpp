@@ -1,5 +1,5 @@
 #include <CTaskScheduler.h>
-
+#include "cmsis_os.h"
 
 namespace corolib
 {
@@ -7,10 +7,16 @@ namespace corolib
 		mQueueHead{0},
 		mQueueTail{0},
 		mQueue{std::make_unique<std::atomic<std::coroutine_handle<>>[]>(mQueueCapacity)},
-		mShutdownRequested{false} 
+		mShutdownRequested{false}
 	{
-	    mInitialized = xTaskCreate(CTaskScheduler::runThread,"Task scheduler", 500, this,
-	            configMAX_PRIORITIES -1, &mThread) == pdPASS;
+	    //mInitialized = xTaskCreate(CTaskScheduler::runThread,"Task scheduler", 500, this,
+	      //      24, &mThread) == pdPASS;
+	    const osThreadAttr_t defaultTask_attributes = {
+	      .name = "schedulerTask",
+	      .stack_size = 128 * 4,
+	      .priority = (osPriority_t) osPriorityNormal,
+	    };
+	    osThreadNew(CTaskScheduler::runThread, this, &defaultTask_attributes);
 
 	}
 
@@ -21,15 +27,11 @@ namespace corolib
 
 	void CTaskScheduler::shutdown()
 	{
-		mShutdownRequested.store(true, std::memory_order_relaxed);
+		mShutdownRequested.store(1, std::memory_order_relaxed);
 
 
 	}
 
-	void CTaskScheduler::schedule(std::coroutine_handle<> operation) noexcept
-	{
-	    tryEnqueue(std::move(operation));
-	}
 
 	void CTaskScheduler::runThread(void* scheduler) noexcept
 	{
@@ -42,7 +44,7 @@ namespace corolib
 			{
 				operation.resume();
 			}
-			
+
 			if(self->mShutdownRequested.load(std::memory_order_relaxed))
 			{
 				break;
@@ -54,8 +56,8 @@ namespace corolib
 	{
 		while (true)
 		{
-			std::size_t tail = mQueueTail.load(std::memory_order_acquire);
-			std::size_t head = mQueueHead.load(std::memory_order_acquire);
+			uint32_t tail = mQueueTail.load(std::memory_order_acquire);
+			uint32_t head = mQueueHead.load(std::memory_order_acquire);
 			if ((tail - head) < mQueueCapacity)
 			{
 				if (mQueueTail.compare_exchange_strong(tail, tail + 1, std::memory_order_seq_cst, std::memory_order_relaxed))
@@ -78,8 +80,8 @@ namespace corolib
 	{
 		while (true)
 		{
-			std::size_t head = mQueueHead.load(std::memory_order_acquire);
-			std::size_t tail = mQueueTail.load(std::memory_order_acquire);
+		    uint32_t head = mQueueHead.load(std::memory_order_acquire);
+		    uint32_t tail = mQueueTail.load(std::memory_order_acquire);
 			if (head < tail)
 			{
 				std::coroutine_handle<> operation = mQueue[head & mQueueMask].load(std::memory_order_seq_cst);

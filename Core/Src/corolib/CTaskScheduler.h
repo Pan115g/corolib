@@ -4,27 +4,46 @@
 #include <coroutine>
 #include <atomic>
 #include <memory>
-#include "FreeRTOS.h"
-#include "task.h"
 
 namespace corolib
 {
     class CTaskScheduler
     {
     public:
+        class CContextSwitchOperation
+        {
+        public:
+
+            CContextSwitchOperation(CTaskScheduler& tp) noexcept : mScheduler(tp) {}
+
+            bool await_ready() noexcept { return false; }
+            void await_suspend(std::coroutine_handle<> awaitingCoroutine) noexcept
+            {
+                mScheduler.tryEnqueue(std::move(awaitingCoroutine));
+            }
+            void await_resume() noexcept {}
+
+        private:
+            CTaskScheduler& mScheduler;
+        };
+
         explicit CTaskScheduler();
-    
+        CTaskScheduler(const CTaskScheduler&) = delete;
+
         ~CTaskScheduler();
 
         bool isInitialized(){return mInitialized;}
 
-        void schedule(std::coroutine_handle<> operation) noexcept;
+        CContextSwitchOperation schedule() noexcept
+        {
+            return CContextSwitchOperation(*this);
+        }
 
-    private:
-    
-        static void runThread(void* self) noexcept;
-                
         void tryEnqueue(std::coroutine_handle<> operation);
+    private:
+
+        static void runThread(void* scheduler) noexcept;
+                
 
         std::coroutine_handle<> tryDequeue() noexcept;
     
@@ -32,13 +51,12 @@ namespace corolib
         void shutdown() ;
     
     private:
-        TaskHandle_t mThread;
         bool mInitialized{false};
     
-        std::atomic<std::size_t> mQueueHead;
-        std::atomic<std::size_t> mQueueTail;
-        constexpr static std::size_t mQueueCapacity = 256; //must be a power of 2
-        constexpr static std::size_t mQueueMask = mQueueCapacity - 1; //must be mGlobalQueueCapacity - 1
+        std::atomic<uint32_t> mQueueHead;
+        std::atomic<uint32_t> mQueueTail;
+        constexpr static uint32_t mQueueCapacity = 256; //must be a power of 2
+        constexpr static uint32_t mQueueMask = mQueueCapacity - 1; //must be mGlobalQueueCapacity - 1
         std::unique_ptr<std::atomic<std::coroutine_handle<>>[]> mQueue;
         std::atomic<bool> mShutdownRequested;
     };

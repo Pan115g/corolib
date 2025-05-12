@@ -10,8 +10,8 @@
 
 namespace corolib
 {
-    CUartReadTask::CUartReadTask(CTaskScheduler& scheduler, CUartAdapter &uartAdapter, std::span<uint8_t> buffer)
-    : CAwaitableIoTask<CUartReadTask>{scheduler},
+    CUartReadTask::CUartReadTask(CUartAdapter &uartAdapter, std::span<uint8_t> buffer)
+    : CAwaitableIoTask<CUartReadTask>{},
     mUartAdapter{uartAdapter}, mBuffer{buffer}
     {
     }

@@ -27,8 +27,8 @@ namespace corolib {
     class CAwaitableIoTask : public CAwaitableIoTaskBase
     {
     public:
-        explicit CAwaitableIoTask(CTaskScheduler& scheduler) noexcept : CAwaitableIoTaskBase{&CAwaitableIoTask<T>::onTaskCompleted},
-        mAwaitingCoroutine{}, mEvents{0}, mScheduler{scheduler} {}
+        explicit CAwaitableIoTask() noexcept : CAwaitableIoTaskBase{&CAwaitableIoTask<T>::onTaskCompleted},
+        mAwaitingCoroutine{}, mEvents{0}{}
 
         bool await_ready() const noexcept { return false; }
 
@@ -56,7 +56,7 @@ namespace corolib {
         {
             auto awaitableTask = static_cast<CAwaitableIoTask<T>*>(task);
             awaitableTask->mEvents = events;
-            awaitableTask->mScheduler.schedule(awaitableTask->mAwaitingCoroutine);
+            awaitableTask->mAwaitingCoroutine.resume();
         }
 
         std::coroutine_handle<> mAwaitingCoroutine;
@@ -64,7 +64,6 @@ namespace corolib {
     protected:
         uint32_t mEvents;
         bool mSkipped{false};
-        CTaskScheduler& mScheduler;
     };
 } /* namespace corolib */
 
