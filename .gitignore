@@ -2,8 +2,8 @@ build/**/*
 build_mcu/**/*
 lib/*
 bin/*
-Debug/*
-Release/*
+*/Debug
+*/Release
 
 # Prerequisites
 *.d

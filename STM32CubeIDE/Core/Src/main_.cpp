@@ -24,7 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include <string.h>
 #include <array>
-#include "corolib/Awaitable.h"
+#include "Awaitable.h"
 #include "CUartAdapter.h"
 #include "CIrqCallback.h"
 #include "CUartReadTask.h"
@@ -108,7 +108,7 @@ void testReceive(corolib::CUartAdapter& uart)
 corolib::Awaitable<> readUart(corolib::CTaskScheduler &scheduler, corolib::CUartAdapter& uart)
 {
     static std::array<uint8_t, 128> buffer_loc;
-    char user_data[] = "Testing coroutine\n";
+    char user_data[] = "Testing coroutines\r";
     HAL_UART_Transmit(&uart.mUart,(uint8_t*)user_data,strlen(user_data),HAL_MAX_DELAY);
     for(int i = 0; i < 10; i++)
     {
