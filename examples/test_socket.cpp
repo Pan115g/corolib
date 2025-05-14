@@ -15,9 +15,14 @@ corolib::Awaitable<> echo(corolib::TcpSocket& socket)
         for (;;)
         {
             std::cout << "echo thread " << std::this_thread::get_id() << '\n';
-            std::size_t n = co_await socket.receive(data);
-            std::cout << "received bytes " << n << " in thread " << std::this_thread::get_id() << '\n';
-            co_await socket.send(std::span(data, n));
+            std::size_t recvBytes = co_await socket.receive(data);
+            std::cout << "received bytes " << recvBytes << " in thread " << std::this_thread::get_id() << '\n';
+            std::size_t sentBytes = co_await socket.send(std::span(data, recvBytes));
+            std::cout << "sent bytes " << sentBytes << " in thread " << std::this_thread::get_id() << '\n';
+            if (sentBytes != recvBytes)
+            {                
+                break;
+            }
         }
     }
     catch (std::exception& e)
@@ -28,7 +33,7 @@ corolib::Awaitable<> echo(corolib::TcpSocket& socket)
 
 corolib::Awaitable<> connect(corolib::TcpSocket& serverSocket, corolib::TcpSocket& acceptedSocket)
 {
-    uint8_t ip[4] = {127, 0, 0, 1};
+    uint8_t ip[4] = {192, 168, 178, 52};
     serverSocket.bind(ip, 55555);
     serverSocket.listen();
 
@@ -39,7 +44,7 @@ corolib::Awaitable<> connect(corolib::TcpSocket& serverSocket, corolib::TcpSocke
 }
 
 
-int main()
+int test_socket()
 {
     corolib::IoEventHandler ioEventHandler;
     corolib::TcpSocket serverSocket(ioEventHandler);

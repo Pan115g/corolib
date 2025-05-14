@@ -2,12 +2,17 @@
 #define IOEVENTHANDLER_H_
 
 #include <unistd.h>
+#include <cstdint>
+#include <sys/epoll.h>
 
 namespace corolib
 {
     class IoEventHandler
     {
         public:
+        
+        constexpr static uint32_t Default_Events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLPRI | EPOLLET;
+
         IoEventHandler();
         IoEventHandler(const IoEventHandler&) = delete;
         IoEventHandler(IoEventHandler&& other) noexcept : mEpollFd(other.mEpollFd)

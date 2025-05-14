@@ -1,20 +1,20 @@
-#ifndef SOCKETSENDTASK_H_
-#define SOCKETSENDTASK_H_
+#ifndef SERIALPORT_SENDTASK_H_
+#define SERIALPORT_SENDTASK_H_
 
 #include <span>
 #include "AwaitableIoTask.h"
 
 namespace corolib
 {
-    class TcpSocket;
+    class SerialPort;
     class IoEventHandler;
 
-    class SocketSendTask : public AwaitableIoTask<SocketSendTask>
+    class SerialPortSendTask : public AwaitableIoTask<SerialPortSendTask>
     {
-        public:
-        explicit SocketSendTask(IoEventHandler& mIoEventHandler, TcpSocket& socket, const std::span<uint8_t> buffer) noexcept;
+        public:        
+        explicit SerialPortSendTask(IoEventHandler& mIoEventHandler, SerialPort& serialPort, const std::span<uint8_t> buffer) noexcept;
 
-        ~SocketSendTask()
+        ~SerialPortSendTask()
         {
 
         }
@@ -22,10 +22,10 @@ namespace corolib
         bool start();
         std::size_t getResult();
         bool checkResumeCondition() {return true;}
-        
+
         private:
         IoEventHandler& mIoEventHandler;
-        TcpSocket& mSocket;
+        SerialPort& mSerialPort;
         std::span<uint8_t> mBuffer;
         uint32_t mNumberOfBytesSent{0};
     };

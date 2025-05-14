@@ -21,7 +21,8 @@ namespace corolib
         
         bool start();
         std::size_t getResult();
-
+        bool checkResumeCondition() {return true;}
+        
         private:
         IoEventHandler& mIoEventHandler;
         TcpSocket& mSocket;

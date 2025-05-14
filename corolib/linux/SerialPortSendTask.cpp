@@ -1,37 +1,35 @@
-#include "SocketSendTask.h"
+#include "SerialPortSendTask.h"
 #include <system_error>
 #include <sys/epoll.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <TcpSocket.h>
+#include <SerialPort.h>
 #include <IoEventHandler.h>
 
 namespace corolib
 {
-    SocketSendTask::SocketSendTask(IoEventHandler& mIoEventHandler, TcpSocket& socket, const std::span<uint8_t> buffer) noexcept 
-    : AwaitableIoTask<SocketSendTask>{}, 
+    SerialPortSendTask::SerialPortSendTask(IoEventHandler& mIoEventHandler, SerialPort& serialPort, const std::span<uint8_t> buffer) noexcept 
+    : AwaitableIoTask<SerialPortSendTask>{}, 
     mIoEventHandler{mIoEventHandler},
-    mSocket{socket},
+    mSerialPort{serialPort},
     mBuffer{buffer}
     {
     }
 
-    bool SocketSendTask::start()
+    bool SerialPortSendTask::start()
     {
         epoll_event ev = { 0, { 0 } };
         ev.events = IoEventHandler::Default_Events | EPOLLOUT;
         ev.data.ptr = this;
         if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
-                            mSocket.getSocketHandle(), &ev))
+            mSerialPort.getFileDescriptor(), &ev))
         {
             const int errorCode = errno;
             throw std::system_error(
                 errorCode,
                 std::system_category(),
-                "Error registering socket with epoll");
+                "Error registering serial port with epoll");
         }
 
-        int res = ::send(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
+        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data(), mBuffer.size());
         if (res > 0)
         {
             mSkipped = true;
@@ -47,27 +45,27 @@ namespace corolib
                 throw std::system_error(
                     errorCode,
                     std::system_category(),
-                    "Error receiving socket: send() in start()");
+                    "Error receiving serial port: send() in start()");
             }
         }
         return true;
     }
 
-    std::size_t SocketSendTask::getResult()
+    std::size_t SerialPortSendTask::getResult()
     {
         if (mSkipped)
         {
             return mNumberOfBytesSent;
         }
 
-        int res = ::send(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
+        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data(), mBuffer.size());
         if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
         {
             const int errorCode = errno;
             throw std::system_error(
                 errorCode,
                 std::system_category(),
-                "Error receiving socket: send() in getResult()");
+                "Error receiving serial port: send() in getResult()");
         }
 
         if (res > 0)

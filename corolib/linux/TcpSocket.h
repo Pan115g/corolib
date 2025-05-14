@@ -2,7 +2,6 @@
 #define TCPSOCKET_H_
 
 #include <cstdint>
-#include <sys/epoll.h>
 #include "IoEventHandler.h"
 #include "SocketAcceptTask.h"
 #include "SocketSendTask.h"
@@ -15,7 +14,6 @@ namespace corolib
         public:
 
         constexpr static int32_t Invalid_Socket = -1;
-        constexpr static uint32_t Default_Events = EPOLLIN | EPOLLERR | EPOLLHUP | EPOLLPRI | EPOLLET;
 
         TcpSocket();
         explicit TcpSocket(IoEventHandler& ioEventHandler);

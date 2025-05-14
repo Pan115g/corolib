@@ -41,9 +41,12 @@ namespace corolib
             EpollCallback* task,
             uint32_t events) noexcept
         {
-            auto awaitableTask = static_cast<AwaitableIoTask<T>*>(task);
-            awaitableTask->mEvents = events;
-            awaitableTask->mAwaitingCoroutine.resume();
+            auto& awaitableTask = static_cast<T&>(*task);
+            awaitableTask.mEvents = events;
+            if (awaitableTask.checkResumeCondition())
+            {
+                awaitableTask.mAwaitingCoroutine.resume();
+            }
         }
 
         std::coroutine_handle<> mAwaitingCoroutine;

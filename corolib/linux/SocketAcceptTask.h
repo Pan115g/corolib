@@ -22,7 +22,8 @@ namespace corolib
         bool start();
 
         void getResult();
-
+        bool checkResumeCondition() {return true;}
+        
         private:
         IoEventHandler& mIoEventHandler;
         TcpSocket& mAcceptingSocket;

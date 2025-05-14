@@ -19,7 +19,7 @@ namespace corolib
     bool SocketAcceptTask::start()
     {
         epoll_event ev = { 0, { 0 } };
-        ev.events = TcpSocket::Default_Events;
+        ev.events = IoEventHandler::Default_Events;
         ev.data.ptr = this;
         if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
                             mAcceptingSocket.getSocketHandle(), &ev))

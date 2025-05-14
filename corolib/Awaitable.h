@@ -175,7 +175,7 @@ namespace corolib
         std::coroutine_handle<promise_type> mCoroHandle;
     };
 
-    Awaitable<void> awaitable_promise_type<void>::get_return_object() noexcept
+    inline Awaitable<void> awaitable_promise_type<void>::get_return_object() noexcept
     {
         return Awaitable<void>{std::coroutine_handle<awaitable_promise_type>::from_promise(*this)};
     }
