@@ -25,6 +25,7 @@
 #include <string.h>
 #include <array>
 #include "Awaitable.h"
+#include "FireAndForget.h"
 #include "CUartAdapter.h"
 #include "CIrqCallback.h"
 #include "CUartReadTask.h"
@@ -232,8 +233,7 @@ int main(void)
   uint32_t tail = test_ato.mQueueTail.load(std::memory_order_acquire);
   defaultTaskHandle = osThreadNew(StartDefaultTask, static_cast<void*>(&test_ato), &defaultTask_attributes);*/
   //testReceive(CDeviceCreator::getInstance().getUart2());
-  auto task = readUart(scheduler, CDeviceCreator::getInstance().getUart2());
-  task.resume();
+  corolib::fireAndForget(readUart(scheduler, CDeviceCreator::getInstance().getUart2()));
   /* USER CODE END 2 */
 
   /* Infinite loop */
