@@ -110,7 +110,7 @@ corolib::Awaitable<> readUart(corolib::CTaskScheduler &scheduler, corolib::CUart
     static std::array<uint8_t, 128> buffer_loc;
     char user_data[] = "Testing coroutines\r";
     HAL_UART_Transmit(&uart.mUart,(uint8_t*)user_data,strlen(user_data),HAL_MAX_DELAY);
-    for(int i = 0; i < 10; i++)
+    while(true)
     {
         uint32_t numOfBytes = co_await corolib::CUartReadTask(uart, buffer_loc);
         co_await scheduler.schedule();
