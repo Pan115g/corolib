@@ -24,4 +24,17 @@ BUSID  VID:PID    DEVICE                                                        
  usbipd detach --busid 6-4
  ```
  
- 
+# Setup working repository
+## WSL
+```
+git clone /mnt/c/path_to_remote_repository
+```
+### git annoying warning about LF/CRLF
+```
+ git config --global core.autocrlf true
+```
+## Windows
+### git annoying warning about LF/CRLF
+```
+ git config --global core.autocrlf false
+```
