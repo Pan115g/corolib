@@ -1,12 +1,13 @@
 #include <iostream>
+#include <thread>
+#include <errno.h>
+#include <cstring>
 #include "Awaitable.h"
+#include "FireAndForget.h"
 #include "SerialPortReceiveTask.h"
 #include "SerialPortSendTask.h"
 #include "IoEventHandler.h"
 #include "SerialPort.h"
-#include <thread>
-#include <errno.h>
-#include <cstring>
 
 corolib::Awaitable<> echo(corolib::IoEventHandler& ioEventHandler, corolib::SerialPort& serialPort)
 {
@@ -71,8 +72,8 @@ int test_serial_port()
 {
     corolib::IoEventHandler ioEventHandler;
     corolib::SerialPort serialPort(ioEventHandler, "/dev/ttyACM0", 115200);
-    auto task = echo(ioEventHandler, serialPort);
-    task.resume();
+    corolib::fireAndForget(echo(ioEventHandler, serialPort));
+    
     ioEventHandler.runEventLoop();
     return 0;
 }
