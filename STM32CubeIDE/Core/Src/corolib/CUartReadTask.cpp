@@ -16,10 +16,6 @@ namespace corolib
     {
     }
 
-    CUartReadTask::~CUartReadTask()
-    {
-    }
-
     bool CUartReadTask::start()
     {
         mUartAdapter.registerMessageReceived([this](const uint8_t* data, const uint32_t size){

@@ -26,19 +26,24 @@ void USART2_IRQHandler(void);
 class CIrqCallback
 {
 public:
+    void registerDMA2Stream0IRQHandler(std::function<void()> c);
     void registerUart2IRQHandler(std::function<void()> c);
     void registerUart2RxCallback(std::function<void()> c);
     void registerUart2TxCallback(std::function<void()> c);
+    void registerAdcConvCpltCallback(std::function<void()> c);
     void invokeIRQHandler(IRQn_Type irqN);
     void invokeRxCallback(IRQn_Type irqN);
     void invokeTxCallback(IRQn_Type irqN);
+    void invokeAdcConvCpltCallback();
     static CIrqCallback& getInstance();
 
 private:
     CIrqCallback();
+    std::function<void()> mDMA2Stream0IRQHandler;
     static std::function<void()> mUart2IRQHandler;
     static std::function<void()> mUart2RxCallback;
     static std::function<void()> mUart2TxCallback;
+    std::function<void()> mAdcConvCpltCallback;
 };
 
 

@@ -55,6 +55,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern DMA_HandleTypeDef hdma_adc1;
 extern UART_HandleTypeDef huart2;
 extern TIM_HandleTypeDef htim5;
 
@@ -160,9 +161,6 @@ void DebugMon_Handler(void)
 /* please refer to the startup file (startup_stm32f4xx.s).                    */
 /******************************************************************************/
 
-/**
-  * @brief This function handles USART2 global interrupt.
-  */
 
 
 /**
@@ -178,6 +176,8 @@ void TIM5_IRQHandler(void)
 
   /* USER CODE END TIM5_IRQn 1 */
 }
+
+
 
 /* USER CODE BEGIN 1 */
 

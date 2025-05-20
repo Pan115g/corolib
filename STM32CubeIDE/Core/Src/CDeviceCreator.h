@@ -9,6 +9,7 @@
 #define SRC_CDEVICECREATOR_H_
 
 #include "CUartAdapter.h"
+#include "CAdcAdapter.h"
 
 class CDeviceCreator {
 public:
@@ -17,11 +18,13 @@ public:
     static CDeviceCreator& getInstance();
 
     corolib::CUartAdapter& getUart2() {return mUart2;};
+    corolib::CAdcAdapter& getAdc1(){return mAdc1;}
 private:
     CDeviceCreator();
     CDeviceCreator(const CDeviceCreator&) = delete;
 
     corolib::CUartAdapter mUart2;
+    corolib::CAdcAdapter mAdc1;
 };
 
 
