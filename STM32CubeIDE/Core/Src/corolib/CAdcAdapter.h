@@ -16,7 +16,8 @@ namespace corolib {
     class CAdcAdapter {
     public:
         CAdcAdapter(ADC_TypeDef* adc);
-        void initiateChannels(const uint32_t channelInputs[], const uint32_t numOfChannels);
+
+        void initiate(const uint32_t channelInputs[], const uint32_t numOfChannels);
 
         bool startConversion(std::span<uint8_t> buffer);
 

@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+extern TIM_HandleTypeDef        htim5;
+
 void DMA2_Stream0_IRQHandler(void)
 {
     CIrqCallback::getInstance().invokeIRQHandler(DMA2_Stream0_IRQn);
@@ -40,6 +42,57 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
         CIrqCallback::getInstance().invokeAdcConvCpltCallback();
     }
 }
+
+void NMI_Handler(void)
+{
+   while (1)
+  {
+  }
+}
+
+
+void HardFault_Handler(void)
+{
+  while (1)
+  {
+  }
+}
+
+void MemManage_Handler(void)
+{
+
+  while (1)
+  {
+  }
+}
+
+void BusFault_Handler(void)
+{
+
+  while (1)
+  {
+  }
+}
+
+
+void UsageFault_Handler(void)
+{
+  while (1)
+  {
+
+  }
+}
+
+void DebugMon_Handler(void)
+{
+
+}
+
+void TIM5_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim5);
+}
+
 
 #ifdef __cplusplus
 }

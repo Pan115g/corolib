@@ -24,7 +24,6 @@ namespace corolib {
         mAdc.Init.DMAContinuousRequests = ENABLE;
         mAdc.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
         mInitialized = (HAL_ADC_Init(&mAdc) == HAL_OK);
-
     }
 
     bool CAdcAdapter::startConversion(std::span<uint8_t> buffer)
@@ -32,7 +31,7 @@ namespace corolib {
         return mInitialized && HAL_ADC_Start_DMA(&mAdc, (uint32_t*)buffer.data(), mNumOfChannel) != HAL_ERROR;
     }
 
-    void CAdcAdapter::initiateChannels(const uint32_t channelInputs[], const uint32_t numOfChannels)
+    void CAdcAdapter::initiate(const uint32_t channelInputs[], const uint32_t numOfChannels)
     {
         mNumOfChannel = numOfChannels;
         ADC_ChannelConfTypeDef sConfig = {0};
