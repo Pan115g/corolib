@@ -93,7 +93,6 @@ void TIM5_IRQHandler(void)
   HAL_TIM_IRQHandler(&htim5);
 }
 
-
 #ifdef __cplusplus
 }
 #endif

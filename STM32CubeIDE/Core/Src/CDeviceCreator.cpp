@@ -160,6 +160,8 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* huart)
   }
 }
 
+
+
 #ifdef __cplusplus
 }
 #endif

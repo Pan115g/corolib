@@ -13,10 +13,10 @@ namespace corolib
 	      //      24, &mThread) == pdPASS;
 	    const osThreadAttr_t defaultTask_attributes = {
 	      .name = "schedulerTask",
-	      .stack_size = 128 * 4,
+	      .stack_size = 128 * 10,
 	      .priority = (osPriority_t) osPriorityNormal,
 	    };
-	    osThreadNew(CTaskScheduler::runThread, this, &defaultTask_attributes);
+	    mThread = osThreadNew(CTaskScheduler::runThread, this, &defaultTask_attributes);
 
 	}
 
@@ -32,6 +32,17 @@ namespace corolib
 
 	}
 
+	void CTaskScheduler::wakeUp()
+	{
+	    if (xPortIsInsideInterrupt())
+	    {
+	        xTaskNotifyFromISR((TaskHandle_t)mThread, 0, eNoAction, NULL);
+	    }
+	    else
+	    {
+	        xTaskNotify((TaskHandle_t)mThread, 0, eNoAction);
+	    }
+	}
 
 	void CTaskScheduler::runThread(void* scheduler) noexcept
 	{
@@ -43,6 +54,10 @@ namespace corolib
 			if (operation)
 			{
 				operation.resume();
+			}
+			else
+			{
+			    xTaskNotifyWait(0, 0, NULL,portMAX_DELAY);
 			}
 
 			if(self->mShutdownRequested.load(std::memory_order_relaxed))

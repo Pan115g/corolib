@@ -70,12 +70,11 @@ CMainTask::CMainTask() : sScheduler{} {
       .priority = (osPriority_t) osPriorityNormal,
     };
     sMainThread = osThreadNew(CMainTask::runThread, (void*)this, &defaultTask_attributes);
-    sTimerAdc = xTimerCreate ("ac_timer", pdMS_TO_TICKS(500), pdTRUE, NULL, CMainTask::adcTimerCallback);
+    sTimerAdc = xTimerCreate ("ac_timer", pdMS_TO_TICKS(10), pdTRUE, NULL, CMainTask::adcTimerCallback);
 
     sOnTimeout = [this](){
         corolib::fireAndForget(readAdc(sScheduler, CDeviceCreator::getInstance().getAdc1(), CDeviceCreator::getInstance().getUart2()));
     };
-
 }
 
 void CMainTask::runThread(void* argument)

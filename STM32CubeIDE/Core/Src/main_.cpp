@@ -60,6 +60,7 @@ void Error_Handler(void)
 
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
+void MX_TIM10_Init(void);
 
 #ifdef __cplusplus
 }
@@ -82,6 +83,8 @@ void SystemClock_Config(void);
   * @brief  The application entry point.
   * @retval int
   */
+
+
 int main(void)
 {
 
@@ -103,10 +106,11 @@ int main(void)
 
     MX_DMA_Init();
 
+    MX_TIM10_Init();
+
     osKernelInitialize();
 
     std::unique_ptr<CMainTask> mainTask = std::make_unique<CMainTask>();
-
     osKernelStart();
 
 

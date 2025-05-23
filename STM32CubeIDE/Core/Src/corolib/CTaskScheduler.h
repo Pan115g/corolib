@@ -4,6 +4,7 @@
 #include <coroutine>
 #include <atomic>
 #include <memory>
+#include "cmsis_os.h"
 
 namespace corolib
 {
@@ -20,6 +21,7 @@ namespace corolib
             void await_suspend(std::coroutine_handle<> awaitingCoroutine) noexcept
             {
                 mScheduler.tryEnqueue(std::move(awaitingCoroutine));
+                mScheduler.wakeUp();
             }
             void await_resume() noexcept {}
 
@@ -40,6 +42,9 @@ namespace corolib
         }
 
         void tryEnqueue(std::coroutine_handle<> operation);
+
+        void wakeUp();
+
     private:
 
         static void runThread(void* scheduler) noexcept;
@@ -52,7 +57,7 @@ namespace corolib
     
     private:
         bool mInitialized{false};
-    
+        osThreadId_t mThread;
         std::atomic<uint32_t> mQueueHead;
         std::atomic<uint32_t> mQueueTail;
         constexpr static uint32_t mQueueCapacity = 256; //must be a power of 2
