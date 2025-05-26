@@ -20,6 +20,11 @@
 #include "CTaskScheduler.h"
 #include "CDeviceCreator.h"
 
+#ifdef DEBUG
+#include <stdio.h>
+#include "CTrace.h"
+#endif
+
 
 corolib::Awaitable<> writeUart(corolib::CTaskScheduler &scheduler, corolib::CUartAdapter& uart, const std::span<uint8_t> buffer)
 {
@@ -62,11 +67,15 @@ corolib::Awaitable<> readAdc(corolib::CTaskScheduler &scheduler, corolib::CAdcAd
 }
 
 std::function<void()> CMainTask::sOnTimeout{};
-CMainTask::CMainTask() : sScheduler{} {
+CMainTask::CMainTask() : sScheduler{}
+#ifdef DEBUG
+    , mTrace{}
+#endif
+    {
 
     const osThreadAttr_t defaultTask_attributes = {
       .name = "MainTask",
-      .stack_size = 128 * 4,
+      .stack_size = 128 * 6,
       .priority = (osPriority_t) osPriorityNormal,
     };
     sMainThread = osThreadNew(CMainTask::runThread, (void*)this, &defaultTask_attributes);
@@ -82,7 +91,8 @@ void CMainTask::runThread(void* argument)
     CMainTask* task = static_cast<CMainTask*>(argument);
     corolib::fireAndForget(readUart(task->sScheduler, CDeviceCreator::getInstance().getUart2()));
     BaseType_t res = xTimerStart(task->sTimerAdc, portMAX_DELAY);
-
+    //Work around for ITM. If without this line, nothing is printed in the console.
+    printf("Main task \n");
     while(1)
     {
         osDelay(osWaitForever);

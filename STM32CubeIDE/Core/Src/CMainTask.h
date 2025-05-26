@@ -12,7 +12,9 @@
 #include "cmsis_os.h"
 #include "timers.h"
 #include "CTaskScheduler.h"
-
+#ifdef DEBUG
+#include "CTrace.h"
+#endif
 
 class CMainTask {
 public:
@@ -26,6 +28,10 @@ private:
     corolib::CTaskScheduler sScheduler;
     osThreadId_t sMainThread;
     TimerHandle_t sTimerAdc;
+
+#ifdef DEBUG
+    CTrace mTrace;
+#endif
 };
 
 #endif /* SRC_CMAINTASK_H_ */

@@ -9,8 +9,6 @@ namespace corolib
 		mQueue{std::make_unique<std::atomic<std::coroutine_handle<>>[]>(mQueueCapacity)},
 		mShutdownRequested{false}
 	{
-	    //mInitialized = xTaskCreate(CTaskScheduler::runThread,"Task scheduler", 500, this,
-	      //      24, &mThread) == pdPASS;
 	    const osThreadAttr_t defaultTask_attributes = {
 	      .name = "schedulerTask",
 	      .stack_size = 128 * 10,
