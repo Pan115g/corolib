@@ -62,7 +62,7 @@ corolib::Awaitable<> readAdc(corolib::CTaskScheduler &scheduler, corolib::CAdcAd
 
     }
     temperatureSum /= 16.0;
-    int res = std::snprintf(sendBuffer, sizeof(sendBuffer), "Cpu temperature: %3d\r", (int32_t)temperatureSum);
+    int res = std::snprintf(sendBuffer, sizeof(sendBuffer), "Cpu temperature: %3ld\r", (int32_t)temperatureSum);
     co_await writeUart(scheduler, uart, {(uint8_t*)sendBuffer, 21UL});
 }
 

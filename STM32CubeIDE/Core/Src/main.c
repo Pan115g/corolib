@@ -44,6 +44,8 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+SPI_HandleTypeDef hspi2;
+
 TIM_HandleTypeDef htim10;
 
 UART_HandleTypeDef huart2;
@@ -66,6 +68,7 @@ static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM10_Init(void);
+static void MX_SPI2_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -100,6 +103,18 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
     HAL_UART_Transmit_IT(&huart2, (uint8_t*)adcValues, sizeof(adcValues));
 }
+
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+  /* Prevent unused argument(s) compilation warning */
+    HAL_SPI_TransmitReceive_IT(&hspi2, (uint8_t*)user_data, data_buffer, 8);
+
+  /* NOTE : This function should not be modified, when the callback is needed,
+            the HAL_SPI_TxRxCpltCallback should be implemented in the user file
+   */
+}
+
+
 /* USER CODE END 0 */
 
 /**
@@ -135,12 +150,14 @@ int main(void)
   MX_USART2_UART_Init();
   MX_ADC1_Init();
   MX_TIM10_Init();
+  MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
-  char user_data[] = "hello from micro-controller, this is a test of send\n";
-  uint16_t len_of_data = strlen(user_data);
-  HAL_UART_Transmit(&huart2,(uint8_t*)user_data,len_of_data,HAL_MAX_DELAY);
+  char send_data[] = "hello from micro-controller, this is a test of send\n";
+  uint16_t len_of_data = strlen(send_data);
+  HAL_UART_Transmit(&huart2,(uint8_t*)send_data,len_of_data,HAL_MAX_DELAY);
 
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcValues, 16);
+
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -183,7 +200,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-      HAL_UART_Receive_IT(&huart2,&recvd_data,1);
+
+
+      HAL_Delay(1000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -406,6 +425,44 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief SPI2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI2_Init(void)
+{
+
+  /* USER CODE BEGIN SPI2_Init 0 */
+
+  /* USER CODE END SPI2_Init 0 */
+
+  /* USER CODE BEGIN SPI2_Init 1 */
+
+  /* USER CODE END SPI2_Init 1 */
+  /* SPI2 parameter configuration*/
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi2.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi2.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI2_Init 2 */
+
+  /* USER CODE END SPI2_Init 2 */
 
 }
 

@@ -111,7 +111,7 @@
 					</folderInfo>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1052576810.1739344862" name="main.h" rcbsApplicability="disable" resourcePath="Core/Inc/main.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="Inc/main.h|Src/stm32f4xx_it.c|Src/stm32f4xx_hal_msp.c|Src/main.c|Src/corolib/CUartSendTask.cpp|Src/main.cpp|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Src/CTrace.cpp|Src/main_.cpp|Src/CDeviceCreator.cpp|Src/CIrqCallback.cpp|Inc/main.h|Src/corolib/CUartSendTask.cpp|Src/main.cpp|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 					</sourceEntries>
@@ -223,7 +223,7 @@
 					</folderInfo>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.release.787597129.928730853" name="main.h" rcbsApplicability="disable" resourcePath="Core/Inc/main.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="Src/stm32f4xx_it.c|Src/stm32f4xx_hal_msp.c|Inc/main.h|Src/corolib/CUartSendTask.cpp|Src/main.c|Src/corolib/Awaitable.h|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Src/CTrace.cpp|Src/CIrqCallback.cpp|Src/main_.cpp|Src/CDeviceCreator.cpp|Inc/main.h|Src/corolib/CUartSendTask.cpp|Src/corolib/Awaitable.h|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 					</sourceEntries>
