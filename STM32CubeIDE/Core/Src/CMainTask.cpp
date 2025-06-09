@@ -14,9 +14,12 @@
 #include "FireAndForget.h"
 #include "CUartAdapter.h"
 #include "CAdcAdapter.h"
+#include "CRtcAdapter.h"
+#include "CSpiMasterAdapter.h"
 #include "CIrqCallback.h"
 #include "CUartReadTask.h"
 #include "CAdcReceiveTask.h"
+#include "CSpiTransmitReceiveTask.h"
 #include "CTaskScheduler.h"
 #include "CDeviceCreator.h"
 
@@ -66,6 +69,76 @@ corolib::Awaitable<> readAdc(corolib::CTaskScheduler &scheduler, corolib::CAdcAd
     co_await writeUart(scheduler, uart, {(uint8_t*)sendBuffer, 21UL});
 }
 
+corolib::Awaitable<> transferSpi(corolib::CTaskScheduler &scheduler, corolib::CSpiMasterAdapter& spiMaster,
+        corolib::CRtcAdapter& rtc, corolib::CUartAdapter& uart)
+{
+    uint8_t receiveBuffer[32] = {0};
+    uint8_t sendBuffer[32] = {0};
+    uint8_t year;
+    uint8_t month;
+    uint8_t day;
+    uint8_t weekDay;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+    const uint8_t payloadSize = 9U;
+    static uint8_t messageId = 0;
+
+    if (!rtc.getDateTime(year, month, day, weekDay, hour, minute, second))
+    {
+        co_return;
+    }
+    sendBuffer[0] = payloadSize;
+    sendBuffer[1] = ++messageId;
+    sendBuffer[2] = year;
+    sendBuffer[3] = month;
+    sendBuffer[4] = day;
+    sendBuffer[5] = weekDay;
+    sendBuffer[6] = hour;
+    sendBuffer[7] = minute;
+    sendBuffer[8] = second;
+
+    co_await corolib::CSpiTransmitReceiveTask(spiMaster, {sendBuffer, 32}, {receiveBuffer, 32});
+    if (receiveBuffer[0] == 0)
+    {
+        co_return;
+    }
+
+    const char err_payloadsize[] = "slave payload size wrong\r";
+    const uint32_t err_payloadsize_len = strlen(err_payloadsize);
+    const char err_msgid[] = "slave message id wrong\r";
+    const uint32_t err_msgid_len = strlen(err_msgid);
+    const char err_date[] = "slave date wrong\r";
+    const uint32_t err_date_len = strlen(err_date);
+    const char err_time[] = "slave time wrong\r";
+    const uint32_t err_time_len = strlen(err_time);
+
+    if (receiveBuffer[0] != payloadSize)
+    {
+        co_await writeUart(scheduler, uart, {(uint8_t*)err_payloadsize, err_payloadsize_len});
+    }
+
+    if (receiveBuffer[1] != (messageId - 1))
+    {
+        co_await writeUart(scheduler, uart, {(uint8_t*)err_msgid, err_msgid_len});
+    }
+
+    if (receiveBuffer[2] != year || receiveBuffer[3] != month || receiveBuffer[4] != day ||
+            receiveBuffer[5] != weekDay)
+    {
+        co_await writeUart(scheduler, uart, {(uint8_t*)err_date, err_date_len});
+    }
+
+    if (receiveBuffer[6] != hour || receiveBuffer[7] != minute || receiveBuffer[8] != second)
+    {
+        char err_time_s[128];
+        std::snprintf(err_time_s, sizeof(err_time_s), "wrong time: %2d %2d %2d, %2d %2d %2d\r",
+                receiveBuffer[6], receiveBuffer[7], receiveBuffer[8], hour, minute, second);
+        co_await writeUart(scheduler, uart, {(uint8_t*)err_time_s, strlen(err_time_s)});
+    }
+}
+
+
 std::function<void()> CMainTask::sOnTimeout{};
 CMainTask::CMainTask() : sScheduler{}
 #ifdef DEBUG
@@ -79,10 +152,12 @@ CMainTask::CMainTask() : sScheduler{}
       .priority = (osPriority_t) osPriorityNormal,
     };
     sMainThread = osThreadNew(CMainTask::runThread, (void*)this, &defaultTask_attributes);
-    sTimerAdc = xTimerCreate ("ac_timer", pdMS_TO_TICKS(10), pdTRUE, NULL, CMainTask::adcTimerCallback);
+    sTimerAdc = xTimerCreate ("ac_timer", pdMS_TO_TICKS(10000), pdTRUE, NULL, CMainTask::adcTimerCallback);
 
     sOnTimeout = [this](){
-        corolib::fireAndForget(readAdc(sScheduler, CDeviceCreator::getInstance().getAdc1(), CDeviceCreator::getInstance().getUart2()));
+        //corolib::fireAndForget(readAdc(sScheduler, CDeviceCreator::getInstance().getAdc1(), CDeviceCreator::getInstance().getUart2()));
+        corolib::fireAndForget(transferSpi(sScheduler, CDeviceCreator::getInstance().getSpi2Master(),
+                CDeviceCreator::getInstance().getRtc(), CDeviceCreator::getInstance().getUart2()));
     };
 }
 

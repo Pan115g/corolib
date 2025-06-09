@@ -14,6 +14,16 @@ void DMA2_Stream0_IRQHandler(void)
     CIrqCallback::getInstance().invokeIRQHandler(DMA2_Stream0_IRQn);
 }
 
+void DMA1_Stream3_IRQHandler(void)
+{
+    CIrqCallback::getInstance().invokeIRQHandler(DMA1_Stream3_IRQn);
+}
+
+void DMA1_Stream4_IRQHandler(void)
+{
+    CIrqCallback::getInstance().invokeIRQHandler(DMA1_Stream4_IRQn);
+}
+
 void USART2_IRQHandler(void)
 {
     CIrqCallback::getInstance().invokeIRQHandler(USART2_IRQn);
@@ -40,6 +50,14 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
     if (hadc->Instance == ADC1)
     {
         CIrqCallback::getInstance().invokeAdcConvCpltCallback();
+    }
+}
+
+void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+    if (hspi->Instance == SPI2)
+    {
+        CIrqCallback::getInstance().invokeSpi2TxRxCpltCallback();
     }
 }
 
@@ -102,6 +120,16 @@ void CIrqCallback::registerDMA2Stream0IRQHandler(std::function<void()> c)
     mDMA2Stream0IRQHandler = c;
 }
 
+void CIrqCallback::registerDMA1Stream3IRQHandler(std::function<void()> c)
+{
+    mDMA1Stream3IRQHandler = c;
+}
+
+void CIrqCallback::registerDMA1Stream4IRQHandler(std::function<void()> c)
+{
+    mDMA1Stream4IRQHandler = c;
+}
+
 void CIrqCallback::registerUart2IRQHandler(std::function<void()> c)
 {
     mUart2IRQHandler = c;
@@ -122,6 +150,11 @@ void CIrqCallback::registerAdcConvCpltCallback(std::function<void()> c)
     mAdcConvCpltCallback = c;
 }
 
+void CIrqCallback::registerSpi2TxRxCpltCallback(std::function<void()> c)
+{
+    mSpi2TxRxCpltCallback = c;
+}
+
 void CIrqCallback::invokeIRQHandler(IRQn_Type irqN)
 {
     switch (irqN)
@@ -136,6 +169,18 @@ void CIrqCallback::invokeIRQHandler(IRQn_Type irqN)
         if (mDMA2Stream0IRQHandler)
         {
             mDMA2Stream0IRQHandler();
+        }
+        break;
+    case DMA1_Stream3_IRQn:
+        if (mDMA1Stream3IRQHandler)
+        {
+            mDMA1Stream3IRQHandler();
+        }
+        break;
+    case DMA1_Stream4_IRQn:
+        if (mDMA1Stream4IRQHandler)
+        {
+            mDMA1Stream4IRQHandler();
         }
         break;
     default:
@@ -162,6 +207,11 @@ void CIrqCallback::invokeTxCallback(IRQn_Type irqN)
 void CIrqCallback::invokeAdcConvCpltCallback()
 {
     mAdcConvCpltCallback();
+}
+
+void CIrqCallback::invokeSpi2TxRxCpltCallback()
+{
+    mSpi2TxRxCpltCallback();
 }
 
 CIrqCallback& CIrqCallback::getInstance()

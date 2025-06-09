@@ -27,23 +27,30 @@ class CIrqCallback
 {
 public:
     void registerDMA2Stream0IRQHandler(std::function<void()> c);
+    void registerDMA1Stream3IRQHandler(std::function<void()> c);
+    void registerDMA1Stream4IRQHandler(std::function<void()> c);
     void registerUart2IRQHandler(std::function<void()> c);
     void registerUart2RxCallback(std::function<void()> c);
     void registerUart2TxCallback(std::function<void()> c);
     void registerAdcConvCpltCallback(std::function<void()> c);
+    void registerSpi2TxRxCpltCallback(std::function<void()> c);
     void invokeIRQHandler(IRQn_Type irqN);
     void invokeRxCallback(IRQn_Type irqN);
     void invokeTxCallback(IRQn_Type irqN);
     void invokeAdcConvCpltCallback();
+    void invokeSpi2TxRxCpltCallback();
     static CIrqCallback& getInstance();
 
 private:
     CIrqCallback();
     std::function<void()> mDMA2Stream0IRQHandler;
+    std::function<void()> mDMA1Stream3IRQHandler;
+    std::function<void()> mDMA1Stream4IRQHandler;
     static std::function<void()> mUart2IRQHandler;
     static std::function<void()> mUart2RxCallback;
     static std::function<void()> mUart2TxCallback;
     std::function<void()> mAdcConvCpltCallback;
+    std::function<void()> mSpi2TxRxCpltCallback;
 };
 
 

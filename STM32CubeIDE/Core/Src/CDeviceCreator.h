@@ -10,6 +10,8 @@
 
 #include "CUartAdapter.h"
 #include "CAdcAdapter.h"
+#include "CSpiMasterAdapter.h"
+#include "CRtcAdapter.h"
 
 class CDeviceCreator {
 public:
@@ -17,14 +19,18 @@ public:
 
     static CDeviceCreator& getInstance();
 
-    corolib::CUartAdapter& getUart2() {return mUart2;};
-    corolib::CAdcAdapter& getAdc1(){return mAdc1;}
+    corolib::CUartAdapter& getUart2() {return mUart2;}
+    corolib::CAdcAdapter& getAdc1() {return mAdc1;}
+    corolib::CSpiMasterAdapter& getSpi2Master() {return mSpi2Master;}
+    corolib::CRtcAdapter& getRtc() {return mRtc;}
 private:
     CDeviceCreator();
     CDeviceCreator(const CDeviceCreator&) = delete;
 
     corolib::CUartAdapter mUart2;
     corolib::CAdcAdapter mAdc1;
+    corolib::CSpiMasterAdapter mSpi2Master;
+    corolib::CRtcAdapter mRtc;
 };
 
 
