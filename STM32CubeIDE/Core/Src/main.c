@@ -44,6 +44,8 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+I2C_HandleTypeDef hi2c2;
+
 RTC_HandleTypeDef hrtc;
 
 SPI_HandleTypeDef hspi2;
@@ -74,6 +76,7 @@ static void MX_ADC1_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_RTC_Init(void);
+static void MX_I2C2_Init(void);
 void StartDefaultTask(void *argument);
 
 /* USER CODE BEGIN PFP */
@@ -119,7 +122,21 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
    */
 }
 
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    HAL_I2C_Master_Seq_Receive_IT(&hi2c2, 76, (uint8_t*)data_buffer, 4, I2C_LAST_FRAME);
+}
 
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    float slave_cpu_temperature = 0;
+    uint8_t * p_temperature = (uint8_t*)(&slave_cpu_temperature);
+    p_temperature[0] = data_buffer[0];
+    p_temperature[1] = data_buffer[1];
+    p_temperature[2] = data_buffer[2];
+    p_temperature[3] = data_buffer[3];
+}
 /* USER CODE END 0 */
 
 /**
@@ -157,6 +174,7 @@ int main(void)
   MX_TIM10_Init();
   MX_SPI2_Init();
   MX_RTC_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   char send_data[] = "hello from micro-controller, this is a test of send\n";
   uint16_t len_of_data = strlen(send_data);
@@ -166,9 +184,11 @@ int main(void)
 
   for (int i=0; i<3; ++i)
   {
-      HAL_SPI_TransmitReceive_DMA(&hspi2, (uint8_t*)user_data, data_buffer, 8);
+   //   HAL_SPI_TransmitReceive_DMA(&hspi2, (uint8_t*)user_data, data_buffer, 8);
       HAL_Delay(1000);
   }
+
+  HAL_I2C_Master_Seq_Transmit_IT(&hi2c2, 76, (uint8_t*)send_data, 1, I2C_FIRST_FRAME);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -437,6 +457,40 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief I2C2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C2_Init(void)
+{
+
+  /* USER CODE BEGIN I2C2_Init 0 */
+
+  /* USER CODE END I2C2_Init 0 */
+
+  /* USER CODE BEGIN I2C2_Init 1 */
+
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.ClockSpeed = 100000;
+  hi2c2.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c2.Init.OwnAddress1 = 70;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C2_Init 2 */
+
+  /* USER CODE END I2C2_Init 2 */
 
 }
 

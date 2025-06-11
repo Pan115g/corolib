@@ -113,7 +113,7 @@
 					</folderInfo>
 					<fileInfo id="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1052576810.1739344862" name="main.h" rcbsApplicability="disable" resourcePath="Core/Inc/main.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="Src/main.c|Src/stm32f4xx_it.c|Src/stm32f4xx_hal_msp.c|Inc/main.h|Src/corolib/CUartSendTask.cpp|Src/main.cpp|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
+						<entry excluding="Src/CIrqCallback.cpp|Src/CDeviceCreator.cpp|Src/CTrace.cpp|Src/main_.cpp|Inc/main.h|Src/corolib/CUartSendTask.cpp|Src/main.cpp|Src/sysmem.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Core"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Middlewares"/>
 						<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="Drivers"/>
 					</sourceEntries>
