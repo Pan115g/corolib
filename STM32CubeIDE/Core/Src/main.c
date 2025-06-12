@@ -87,7 +87,7 @@ void StartDefaultTask(void *argument);
 /* USER CODE BEGIN 0 */
 #define TRUE 1
 #define FALSE 0
-char *user_data = "The application is running\r\n";
+uint8_t send_data[100];
 uint8_t  data_buffer[100];
 uint8_t  recvd_data;
 uint32_t count=0;
@@ -114,28 +114,47 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-  /* Prevent unused argument(s) compilation warning */
-    //HAL_SPI_TransmitReceive_DMA(&hspi2, (uint8_t*)user_data, data_buffer, 8);
-
-  /* NOTE : This function should not be modified, when the callback is needed,
-            the HAL_SPI_TxRxCpltCallback should be implemented in the user file
-   */
+    uint32_t* cputicks = (uint32_t*)&data_buffer[2];
 }
 
 void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-    HAL_I2C_Master_Seq_Receive_IT(&hi2c2, 76, (uint8_t*)data_buffer, 4, I2C_LAST_FRAME);
+    switch (send_data[0])
+    {
+    case 0x31: //request RTC
+        HAL_I2C_Master_Seq_Receive_IT(&hi2c2, 76, (uint8_t*)data_buffer, 7, I2C_LAST_FRAME);
+        break;
+    case 0x32: //reset RTC
+        break;
+    case 0x33: //request cpu temperature
+        HAL_I2C_Master_Seq_Receive_IT(&hi2c2, 76, (uint8_t*)data_buffer, 4, I2C_LAST_FRAME);
+        break;
+    default:
+        break;
+    }
 }
 
 
 void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-    float slave_cpu_temperature = 0;
-    uint8_t * p_temperature = (uint8_t*)(&slave_cpu_temperature);
-    p_temperature[0] = data_buffer[0];
-    p_temperature[1] = data_buffer[1];
-    p_temperature[2] = data_buffer[2];
-    p_temperature[3] = data_buffer[3];
+    switch (send_data[0])
+    {
+    case 0x31: //request RTC
+
+        break;
+    case 0x32: //reset RTC
+        break;
+    case 0x33: //request cpu temperature
+        float slave_cpu_temperature = 0;
+        uint8_t * p_temperature = (uint8_t*)(&slave_cpu_temperature);
+        p_temperature[0] = data_buffer[0];
+        p_temperature[1] = data_buffer[1];
+        p_temperature[2] = data_buffer[2];
+        p_temperature[3] = data_buffer[3];
+        break;
+    default:
+        break;
+    }
 }
 /* USER CODE END 0 */
 
@@ -176,19 +195,31 @@ int main(void)
   MX_RTC_Init();
   MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
-  char send_data[] = "hello from micro-controller, this is a test of send\n";
-  uint16_t len_of_data = strlen(send_data);
-  HAL_UART_Transmit(&huart2,(uint8_t*)send_data,len_of_data,HAL_MAX_DELAY);
+  char user_data[] = "hello from micro-controller, this is a test of send\n";
+  uint16_t len_of_data = strlen(user_data);
+  HAL_UART_Transmit(&huart2,(uint8_t*)user_data,len_of_data,HAL_MAX_DELAY);
 
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcValues, 16);
 
+  user_data[1] = 0;
   for (int i=0; i<3; ++i)
   {
-   //   HAL_SPI_TransmitReceive_DMA(&hspi2, (uint8_t*)user_data, data_buffer, 8);
+      user_data[1] += 1;
+      HAL_SPI_TransmitReceive_DMA(&hspi2, (uint8_t*)user_data, data_buffer, 8);
       HAL_Delay(1000);
   }
 
-  HAL_I2C_Master_Seq_Transmit_IT(&hi2c2, 76, (uint8_t*)send_data, 1, I2C_FIRST_FRAME);
+  send_data[0] = 0x32; //reset RTC
+  send_data[1] = 25;
+  send_data[2] = RTC_MONTH_JUNE;
+  send_data[3] = 12;
+  send_data[4] = RTC_WEEKDAY_THURSDAY;
+  send_data[5] = 11;
+  send_data[6] = 40;
+  send_data[7] = 0;
+  //HAL_I2C_Master_Transmit_IT(&hi2c2, 76, (uint8_t*)send_data, 32);
+  send_data[0] = 0x33; //request RTC
+  HAL_I2C_Master_Seq_Transmit_IT(&hi2c2, 76, (uint8_t*)send_data, 32, I2C_FIRST_FRAME);
   /* USER CODE END 2 */
 
   /* Init scheduler */
