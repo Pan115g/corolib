@@ -32,7 +32,7 @@ CSpiMasterAdapter::~CSpiMasterAdapter() {
 bool CSpiMasterAdapter::startTransfer(const std::span<uint8_t> txData, std::span<uint8_t> rxData)
 {
     return mInitialized && HAL_SPI_TransmitReceive_DMA(&mSpi, (uint8_t*)txData.data(), (uint8_t*)rxData.data(),
-            txData.size()) != HAL_ERROR;
+            txData.size()) == HAL_OK;
 }
 
 } /* namespace corolib */

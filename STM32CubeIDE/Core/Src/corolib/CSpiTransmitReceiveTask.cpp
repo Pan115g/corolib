@@ -21,7 +21,7 @@ CSpiTransmitReceiveTask::CSpiTransmitReceiveTask(CSpiMasterAdapter &spiAdapter, 
 }
 
 CSpiTransmitReceiveTask::~CSpiTransmitReceiveTask() {
-
+    CIrqCallback::getInstance().deregisterSpi2TxRxCpltCallback();
 }
 
 bool CSpiTransmitReceiveTask::start()

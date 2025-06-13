@@ -29,6 +29,11 @@ void USART2_IRQHandler(void)
     CIrqCallback::getInstance().invokeIRQHandler(USART2_IRQn);
 }
 
+void I2C2_EV_IRQHandler(void)
+{
+    CIrqCallback::getInstance().invokeIRQHandler(I2C2_EV_IRQn);
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART2)
@@ -42,6 +47,23 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
     if (huart->Instance == USART2)
     {
         CIrqCallback::getInstance().invokeTxCallback(USART2_IRQn);
+    }
+}
+
+void HAL_I2C_MasterTxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    if (hi2c->Instance == I2C2)
+    {
+        CIrqCallback::getInstance().invokeTxCallback(I2C2_EV_IRQn);
+    }
+}
+
+
+void HAL_I2C_MasterRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+    if (hi2c->Instance == I2C2)
+    {
+        CIrqCallback::getInstance().invokeRxCallback(I2C2_EV_IRQn);
     }
 }
 
@@ -135,6 +157,11 @@ void CIrqCallback::registerUart2IRQHandler(std::function<void()> c)
     mUart2IRQHandler = c;
 }
 
+void CIrqCallback::registerI2c2EventIRQHandler(std::function<void()> c)
+{
+    mI2c2EventIRQHandler = c;
+}
+
 void CIrqCallback::registerUart2RxCallback(std::function<void()> c)
 {
     mUart2RxCallback = c;
@@ -153,6 +180,21 @@ void CIrqCallback::registerAdcConvCpltCallback(std::function<void()> c)
 void CIrqCallback::registerSpi2TxRxCpltCallback(std::function<void()> c)
 {
     mSpi2TxRxCpltCallback = c;
+}
+
+void CIrqCallback::deregisterSpi2TxRxCpltCallback()
+{
+    mSpi2TxRxCpltCallback = nullptr;
+}
+
+void CIrqCallback::registerI2c2TxCpltCallback(std::function<void()> c)
+{
+    mI2c2TxCpltCallback = c;
+}
+
+void CIrqCallback::registerI2c2RxCpltCallback(std::function<void()> c)
+{
+    mI2c2RxCpltCallback = c;
 }
 
 void CIrqCallback::invokeIRQHandler(IRQn_Type irqN)
@@ -183,6 +225,12 @@ void CIrqCallback::invokeIRQHandler(IRQn_Type irqN)
             mDMA1Stream4IRQHandler();
         }
         break;
+    case I2C2_EV_IRQn:
+        if (mI2c2EventIRQHandler)
+        {
+            mI2c2EventIRQHandler();
+        }
+        break;
     default:
         return;
     }
@@ -190,28 +238,60 @@ void CIrqCallback::invokeIRQHandler(IRQn_Type irqN)
 
 void CIrqCallback::invokeRxCallback(IRQn_Type irqN)
 {
-    if (irqN == USART2_IRQn && mUart2RxCallback)
+    switch (irqN)
     {
-        mUart2RxCallback();
+    case USART2_IRQn:
+        if (mUart2RxCallback)
+        {
+            mUart2RxCallback();
+        }
+        break;
+    case I2C2_EV_IRQn:
+        if (mI2c2RxCpltCallback)
+        {
+            mI2c2RxCpltCallback();
+        }
+        break;
+    default:
+        break;
     }
 }
 
 void CIrqCallback::invokeTxCallback(IRQn_Type irqN)
 {
-    if (irqN == USART2_IRQn && mUart2TxCallback)
+    switch (irqN)
     {
-        mUart2TxCallback();
+    case USART2_IRQn:
+        if (mUart2TxCallback)
+        {
+            mUart2TxCallback();
+        }
+        break;
+    case I2C2_EV_IRQn:
+        if (mI2c2TxCpltCallback)
+        {
+            mI2c2TxCpltCallback();
+        }
+        break;
+    default:
+        break;
     }
 }
 
 void CIrqCallback::invokeAdcConvCpltCallback()
 {
-    mAdcConvCpltCallback();
+    if (mAdcConvCpltCallback)
+    {
+        mAdcConvCpltCallback();
+    }
 }
 
 void CIrqCallback::invokeSpi2TxRxCpltCallback()
 {
-    mSpi2TxRxCpltCallback();
+    if (mSpi2TxRxCpltCallback)
+    {
+        mSpi2TxRxCpltCallback();
+    }
 }
 
 CIrqCallback& CIrqCallback::getInstance()

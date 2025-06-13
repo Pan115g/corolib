@@ -202,11 +202,11 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adcValues, 16);
 
   user_data[1] = 0;
-  for (int i=0; i<3; ++i)
+  for (int i=0; i<30000; ++i)
   {
       user_data[1] += 1;
-      HAL_SPI_TransmitReceive_DMA(&hspi2, (uint8_t*)user_data, data_buffer, 8);
-      HAL_Delay(1000);
+      HAL_SPI_TransmitReceive_DMA(&hspi2, (uint8_t*)user_data, data_buffer, 32);
+      HAL_Delay(10);
   }
 
   send_data[0] = 0x32; //reset RTC

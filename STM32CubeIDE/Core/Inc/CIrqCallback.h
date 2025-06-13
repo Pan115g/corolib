@@ -29,11 +29,15 @@ public:
     void registerDMA2Stream0IRQHandler(std::function<void()> c);
     void registerDMA1Stream3IRQHandler(std::function<void()> c);
     void registerDMA1Stream4IRQHandler(std::function<void()> c);
+    void registerI2c2EventIRQHandler(std::function<void()> c);
     void registerUart2IRQHandler(std::function<void()> c);
     void registerUart2RxCallback(std::function<void()> c);
     void registerUart2TxCallback(std::function<void()> c);
     void registerAdcConvCpltCallback(std::function<void()> c);
     void registerSpi2TxRxCpltCallback(std::function<void()> c);
+    void deregisterSpi2TxRxCpltCallback();
+    void registerI2c2TxCpltCallback(std::function<void()> c);
+    void registerI2c2RxCpltCallback(std::function<void()> c);
     void invokeIRQHandler(IRQn_Type irqN);
     void invokeRxCallback(IRQn_Type irqN);
     void invokeTxCallback(IRQn_Type irqN);
@@ -46,11 +50,14 @@ private:
     std::function<void()> mDMA2Stream0IRQHandler;
     std::function<void()> mDMA1Stream3IRQHandler;
     std::function<void()> mDMA1Stream4IRQHandler;
+    std::function<void()> mI2c2EventIRQHandler;
     static std::function<void()> mUart2IRQHandler;
     static std::function<void()> mUart2RxCallback;
     static std::function<void()> mUart2TxCallback;
     std::function<void()> mAdcConvCpltCallback;
     std::function<void()> mSpi2TxRxCpltCallback;
+    std::function<void()> mI2c2TxCpltCallback;
+    std::function<void()> mI2c2RxCpltCallback;
 };
 
 

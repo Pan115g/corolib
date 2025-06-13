@@ -152,7 +152,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_12;
+    GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -205,7 +205,7 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* hspi)
 
     HAL_GPIO_DeInit(GPIOC, GPIO_PIN_2|GPIO_PIN_3);
 
-    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10|GPIO_PIN_12);
+    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_12|GPIO_PIN_13);
 
     HAL_DMA_DeInit(hspi->hdmarx);
     HAL_DMA_DeInit(hspi->hdmatx);
@@ -274,6 +274,50 @@ void HAL_RTC_MspDeInit(RTC_HandleTypeDef* hrtc)
 
 }
 
+void HAL_I2C_MspInit(I2C_HandleTypeDef* hi2c)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  if(hi2c->Instance==I2C2)
+  {
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    GPIO_InitStruct.Pin = GPIO_PIN_10;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF4_I2C2;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_9;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF9_I2C2;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    __HAL_RCC_I2C2_CLK_ENABLE();
+
+    HAL_NVIC_SetPriority(I2C2_EV_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(I2C2_EV_IRQn);
+  }
+
+}
+
+void HAL_I2C_MspDeInit(I2C_HandleTypeDef* hi2c)
+{
+  if(hi2c->Instance==I2C2)
+  {
+    __HAL_RCC_I2C2_CLK_DISABLE();
+
+    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_10);
+
+    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_9);
+
+    HAL_NVIC_DisableIRQ(I2C2_EV_IRQn);
+  }
+
+}
+
 #ifdef __cplusplus
 }
 #endif
@@ -285,7 +329,7 @@ CDeviceCreator& CDeviceCreator::getInstance()
 }
 
 CDeviceCreator::CDeviceCreator() : mUart2(USART2, 115200, '\r'), mAdc1{ADC1}, mSpi2Master{SPI2},
-        mRtc{RTC}
+        mRtc{RTC}, mI2c2Master{I2C2, 35U}
 {
     const uint32_t adcNumOfChannels = 16UL;
     uint32_t adcChannels[adcNumOfChannels] = {
@@ -313,6 +357,10 @@ CDeviceCreator::CDeviceCreator() : mUart2(USART2, 115200, '\r'), mAdc1{ADC1}, mS
 
     CIrqCallback::getInstance().registerDMA1Stream4IRQHandler([]() {
         HAL_DMA_IRQHandler(&hdma_spi2_tx);
+    });
+
+    CIrqCallback::getInstance().registerI2c2EventIRQHandler([this]() {
+        mI2c2Master.irqHandler();
     });
 
     mRtc.setDateTime(25, RTC_MONTH_JUNE, 9, RTC_WEEKDAY_MONDAY, 17, 11, 59);

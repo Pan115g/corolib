@@ -23,11 +23,14 @@ public:
 private:
     static void runThread(void*) noexcept;
     static void adcTimerCallback(TimerHandle_t xTimer);
+    static void spiTimerCallback(TimerHandle_t xTimer);
 
-    static std::function<void()> sOnTimeout;
-    corolib::CTaskScheduler sScheduler;
-    osThreadId_t sMainThread;
-    TimerHandle_t sTimerAdc;
+    static std::function<void()> sOnAdcTimeout;
+    static std::function<void()> sOnSpiTimeout;
+    corolib::CTaskScheduler mScheduler;
+    osThreadId_t mMainThread;
+    TimerHandle_t mTimerAdc;
+    TimerHandle_t mTimerSpi;
 
 #ifdef DEBUG
     CTrace mTrace;
