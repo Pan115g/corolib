@@ -1,4 +1,20 @@
+# Introduction
+The c++ library supports writing asynchronous code for I/O communication with coroutine.
+Supporte platforms:
+ - windows
+ - linux
+ - FreeRTOS
+
+The source code of the library is in folder corolib.  
+Example projects are
+ - examples (cmake project for linux)
+ - STM32CubeIDE (STM32Cube project for master, uses FreeRTOS)
+ - MCUSlave (STM32Cube project for slave, bare metal) 
+
+
 # Configure serial port for WSL
+This configuration is necessary if you don't have native linux OS, but want to configure the ST-Link debug Uart port for windows WSL.
+## Steps
  - install usbipd-win_5.0.0_x64.msi
  - open powershell
  - list all usb devices with
@@ -25,7 +41,8 @@ BUSID  VID:PID    DEVICE                                                        
  ```
  
 # Setup working repository
-## WSL
+## In WSL
+Clone local repository which is located in windows.
 ```
 git clone /mnt/c/path_to_remote_repository
 ```
@@ -33,7 +50,7 @@ git clone /mnt/c/path_to_remote_repository
 ```
  git config --global core.autocrlf true
 ```
-## Windows
+## In Windows
 ### git annoying warning about LF/CRLF
 ```
  git config --global core.autocrlf false
