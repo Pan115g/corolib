@@ -7,4 +7,6 @@ SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fcoroutines")
 
 add_subdirectory("corolib")
 add_subdirectory ("examples")
+add_subdirectory("benchmark")
+add_subdirectory("benchmark_standard")
 

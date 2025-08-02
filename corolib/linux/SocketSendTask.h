@@ -14,10 +14,7 @@ namespace corolib
         public:
         explicit SocketSendTask(IoEventHandler& mIoEventHandler, TcpSocket& socket, const std::span<uint8_t> buffer) noexcept;
 
-        ~SocketSendTask()
-        {
-
-        }
+        ~SocketSendTask();
         
         bool start();
         std::size_t getResult();

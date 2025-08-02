@@ -16,28 +16,23 @@ namespace corolib
     {
     }
 
+    SocketSendTask::~SocketSendTask()
+    {
+        if (mSocket.isInitialized())
+        {
+            epoll_event ev = { 0, { 0 } };
+            ev.events = IoEventHandler::Default_Events & ~EPOLLOUT;
+            if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
+                                mSocket.getSocketHandle(), &ev))
+            {
+                mNumberOfBytesSent = 0;
+            }
+        }
+    }
+
     bool SocketSendTask::start()
     {
-        epoll_event ev = { 0, { 0 } };
-        ev.events = IoEventHandler::Default_Events | EPOLLOUT;
-        ev.data.ptr = this;
-        if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
-                            mSocket.getSocketHandle(), &ev))
-        {
-            const int errorCode = errno;
-            throw std::system_error(
-                errorCode,
-                std::system_category(),
-                "Error registering socket with epoll");
-        }
-
         int res = ::send(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
-        if (res > 0)
-        {
-            mSkipped = true;
-            mNumberOfBytesSent = res;
-            return false;
-        }
 
         if (res == -1)
         {
@@ -50,6 +45,29 @@ namespace corolib
                     "Error receiving socket: send() in start()");
             }
         }
+            
+        if (res > 0)
+        {
+            mNumberOfBytesSent = res;
+            if (mNumberOfBytesSent == mBuffer.size())
+            {
+                mSkipped = true;
+                return false;
+            }
+        }
+
+        epoll_event ev = { 0, { 0 } };
+        ev.events = IoEventHandler::Default_Events | EPOLLOUT;
+        ev.data.ptr = this;
+        if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
+                            mSocket.getSocketHandle(), &ev))
+        {
+            const int errorCode = errno;
+            throw std::system_error(
+                errorCode,
+                std::system_category(),
+                "Error registering socket with epoll");
+        }
         return true;
     }
 
@@ -60,7 +78,7 @@ namespace corolib
             return mNumberOfBytesSent;
         }
 
-        int res = ::send(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
+        int res = ::send(mSocket.getSocketHandle(), mBuffer.data() + mNumberOfBytesSent, mBuffer.size() - mNumberOfBytesSent, 0);
         if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
         {
             const int errorCode = errno;
@@ -72,7 +90,7 @@ namespace corolib
 
         if (res > 0)
         {
-            mNumberOfBytesSent = res;
+            mNumberOfBytesSent += res;
         }
         return mNumberOfBytesSent;
     }
