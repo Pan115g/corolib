@@ -22,6 +22,7 @@ using boost::asio::detached;
 using boost::asio::use_awaitable;
 namespace this_coro = boost::asio::this_coro;
 
+
 #if defined(BOOST_ASIO_ENABLE_HANDLER_TRACKING)
 # define use_awaitable \
   boost::asio::use_awaitable_t(__FILE__, __LINE__, __PRETTY_FUNCTION__)
@@ -32,24 +33,26 @@ tcp::socket server_socket(io_context);
 
 awaitable<void> communicate(const std::span<uint8_t> message, auto onFinished)
 {
-    uint8_t buffer[1024];
-    std::copy(message.begin(), message.end(), buffer);
-    std::size_t numOfBytes = co_await async_write(server_socket, boost::asio::buffer(&buffer[0], message.size()), use_awaitable);
-    onFinished(numOfBytes);
+    std::size_t numOfBytes = co_await async_write(server_socket, boost::asio::buffer(message), use_awaitable);
+    onFinished(numOfBytes);   
 }
 
 static void BM_StringCreation(benchmark::State& state) {
     uint64_t finishedCounter = 0;
     std::vector<uint8_t> data(state.range(0), 'X');
+    uint8_t i = 0;
+    for(auto & c : data) {
+        c = ++i + 30;
+    }
     data[state.range(0) - 1] = '\r'; // Ensure the last
     for (auto _ : state)
     {
         co_spawn(io_context, communicate(data, [&finishedCounter](const uint64_t n){
           finishedCounter += n;
         }), detached);
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));  
     }
     
-    std::this_thread::sleep_for(std::chrono::seconds(2));
     std::printf("finished one run %ld %ld\n", finishedCounter, state.iterations() * state.range(0));
     state.SetComplexityN(state.range(0));
     state.SetBytesProcessed(finishedCounter);
@@ -60,7 +63,7 @@ static void BM_StringCreation(benchmark::State& state) {
     state.counters["heap free"] = mi.fordblks;
 }
 // Register the function as a benchmark
-BENCHMARK(BM_StringCreation)->Arg(32)->Complexity();
+BENCHMARK(BM_StringCreation)->Arg(1024)->MeasureProcessCPUTime()->Complexity();
 
 awaitable<void> listener()
 {

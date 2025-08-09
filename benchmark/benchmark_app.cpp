@@ -8,7 +8,10 @@
 #include "TcpSocket.h"
 #include "SocketSendTask.h"
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 
+using namespace corolib;
 corolib::IoEventHandler ioEventHandler;
 corolib::TcpSocket serverSocket(ioEventHandler);
 corolib::TcpSocket acceptedSocket(ioEventHandler, corolib::TcpSocket::Invalid_Socket);
@@ -16,10 +19,10 @@ corolib::TcpSocket acceptedSocket(ioEventHandler, corolib::TcpSocket::Invalid_So
 //template<auto onFinished>
 corolib::Awaitable<void> communicate(const std::span<uint8_t> message, auto onFinished)
 {
-    uint8_t buffer[1024];
-    std::copy(message.begin(), message.end(), buffer);
-    //std::cout << "Sending " << message << " in " << std::this_thread::get_id() << std::endl; 
-    uint32_t numOfBytes = co_await acceptedSocket.send({&buffer[0], message.size()});
+    std::vector<uint8_t> buffer(message.size());
+    std::copy(message.begin(), message.end(), buffer.begin());
+    
+    uint32_t numOfBytes = co_await acceptedSocket.send(buffer);
     onFinished(numOfBytes);
 }
 
@@ -31,17 +34,19 @@ static void BM_StringCreation(benchmark::State& state) {
         c = ++i + 30;
     }
     data[state.range(0) - 1] = '\r'; // Ensure the last
+
     for (auto _ : state)
     {
         corolib::fireAndForget(communicate(data, [&finishedCounter](const uint64_t n){
           finishedCounter += n;
         }));
+      std::this_thread::sleep_for(std::chrono::milliseconds(5));  
     }
-
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-    std::printf("finished one run %ld %ld\n", finishedCounter,  state.iterations() * state.range(0));
+    
+    std::printf("finished one run %ld %ld\n", finishedCounter, state.iterations() * state.range(0));
     state.SetComplexityN(state.range(0));
-    state.SetBytesProcessed(state.iterations() * state.range(0));
+    state.SetBytesProcessed(finishedCounter);
+
     struct mallinfo2 mi;
     mi = mallinfo2();
     state.counters["heap allocated"] = mi.arena;  
@@ -49,7 +54,7 @@ static void BM_StringCreation(benchmark::State& state) {
     state.counters["heap free"] = mi.fordblks;
 }
 // Register the function as a benchmark
-BENCHMARK(BM_StringCreation)->Arg(32)->Complexity();
+BENCHMARK(BM_StringCreation)->Arg(1024)->MeasureProcessCPUTime()->Complexity();
 
 
 corolib::Awaitable<> connect(corolib::TcpSocket& serverSocket, corolib::TcpSocket& acceptedSocket)
@@ -68,7 +73,12 @@ int connect_socket()
 {
     std::printf("before connect\n");
     corolib::fireAndForget(connect(serverSocket, acceptedSocket));
-    std::thread ioThread([]() {
+
+}
+
+int main(int argc, char** argv) {
+  connect_socket();
+      std::thread ioThread([]() {
       try{
         ioEventHandler.runEventLoop();
       }
@@ -79,12 +89,10 @@ int connect_socket()
         std::cerr << "Unknown exception in IO event handler" << std::endl;
       }
     });
+
     ioThread.detach();
     std::this_thread::sleep_for(std::chrono::seconds(5)); // Allow some time for the connection to be established
-}
 
-int main(int argc, char** argv) {
-  connect_socket();
   /*std::vector<uint8_t> data(8, 'X');
   data[7] = '\r'; // Ensure the last character is a carriage return
   uint32_t finishedCounter = 0;
@@ -101,4 +109,6 @@ int main(int argc, char** argv) {
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
   benchmark::Shutdown();
+
+
 }
