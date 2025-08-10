@@ -14,8 +14,46 @@ namespace corolib
     {
     }
 
+    SerialPortSendTask::~SerialPortSendTask()
+    {
+        if (mSerialPort.isInitialized())
+        {
+            epoll_event ev = { 0, { 0 } };
+            ev.events = IoEventHandler::Default_Events & ~EPOLLOUT;
+            if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
+                                mSerialPort.getFileDescriptor(), &ev))
+            {
+                mNumberOfBytesSent = 0;
+            }
+        }
+    }
+
     bool SerialPortSendTask::start()
     {
+        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data(), mBuffer.size());
+
+        if (res == -1)
+        {
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
+            {
+                const int errorCode = errno;
+                throw std::system_error(
+                    errorCode,
+                    std::system_category(),
+                    "Error receiving serial port: send() in start()");
+            }
+        }
+
+        if (res > 0)
+        {
+            mNumberOfBytesSent = res;
+            if (res == mBuffer.size())
+            {
+                mSkipped = true;
+                return false;
+            }
+        }
+
         epoll_event ev = { 0, { 0 } };
         ev.events = IoEventHandler::Default_Events | EPOLLOUT;
         ev.data.ptr = this;
@@ -29,25 +67,6 @@ namespace corolib
                 "Error registering serial port with epoll");
         }
 
-        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data(), mBuffer.size());
-        if (res > 0)
-        {
-            mSkipped = true;
-            mNumberOfBytesSent = res;
-            return false;
-        }
-
-        if (res == -1)
-        {
-            if (errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                const int errorCode = errno;
-                throw std::system_error(
-                    errorCode,
-                    std::system_category(),
-                    "Error receiving serial port: send() in start()");
-            }
-        }
         return true;
     }
 
@@ -58,7 +77,7 @@ namespace corolib
             return mNumberOfBytesSent;
         }
 
-        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data(), mBuffer.size());
+        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data() + mNumberOfBytesSent, mBuffer.size() - mNumberOfBytesSent);
         if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
         {
             const int errorCode = errno;
@@ -70,7 +89,7 @@ namespace corolib
 
         if (res > 0)
         {
-            mNumberOfBytesSent = res;
+            mNumberOfBytesSent += res;
         }
         return mNumberOfBytesSent;
     }

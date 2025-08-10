@@ -1,6 +1,5 @@
 #include <benchmark/benchmark.h>
 #include <malloc.h>
-#include <iostream>
 #include "Awaitable.h"
 #include "FireAndForget.h"
 #include "SocketAcceptTask.h"
@@ -8,8 +7,6 @@
 #include "TcpSocket.h"
 #include "SocketSendTask.h"
 #include <thread>
-#include <mutex>
-#include <condition_variable>
 
 using namespace corolib;
 corolib::IoEventHandler ioEventHandler;
@@ -77,8 +74,8 @@ int connect_socket()
 }
 
 int main(int argc, char** argv) {
-  connect_socket();
-      std::thread ioThread([]() {
+    connect_socket();
+    std::thread ioThread([]() {
       try{
         ioEventHandler.runEventLoop();
       }

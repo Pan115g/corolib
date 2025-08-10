@@ -84,8 +84,7 @@ int main(int argc, char** argv)
     std::cout << "main thread " << std::this_thread::get_id() << '\n';
     try
     {
-        
-
+        //keep io_context alive
         boost::asio::signal_set signals(io_context, SIGINT, SIGTERM);
         signals.async_wait([&](auto, auto) { io_context.stop(); });
 
