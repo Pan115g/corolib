@@ -42,7 +42,7 @@ namespace corolib
                 throw std::system_error(
                     errorCode,
                     std::system_category(),
-                    "Error receiving socket: send() in start()");
+                    "Error sending socket: send() in start()");
             }
         }
             

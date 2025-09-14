@@ -40,7 +40,7 @@ namespace corolib
                 throw std::system_error(
                     errorCode,
                     std::system_category(),
-                    "Error receiving serial port: send() in start()");
+                    "Error sending serial port: send() in start()");
             }
         }
 
@@ -84,7 +84,7 @@ namespace corolib
             throw std::system_error(
                 errorCode,
                 std::system_category(),
-                "Error receiving serial port: send() in getResult()");
+                "Error sending serial port: send() in getResult()");
         }
 
         if (res > 0)

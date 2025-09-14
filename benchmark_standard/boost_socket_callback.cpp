@@ -12,7 +12,6 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read.hpp>
-#include <boost/asio/awaitable.hpp>
 #include <cstdio>
 #include <iostream>
 #include <span>
@@ -40,19 +39,16 @@ awaitable<void> communicate(const std::span<uint8_t> message, auto onFinished)
 static void BM_StringCreation(benchmark::State& state) {
     uint64_t finishedCounter = 0;
     std::vector<uint8_t> data(state.range(0), 'X');
-    uint8_t i = 0;
-    for(auto & c : data) {
-        c = ++i + 30;
-    }
     data[state.range(0) - 1] = '\r'; // Ensure the last
     for (auto _ : state)
     {        
         std::promise<void> done;
         auto fut = done.get_future();
-        co_spawn(io_context, communicate(data, [&finishedCounter, &done](const uint64_t n){
-          finishedCounter += n;
-          done.set_value();
-        }), detached);
+        async_write(server_socket, boost::asio::buffer(data), [](const boost::system::error_code& ec, std::size_t bytes_transferred){});
+        async_read(server_socket, boost::asio::buffer(data, data.size()), [&finishedCounter, &done](const boost::system::error_code& ec, std::size_t bytes_transferred){
+            finishedCounter += bytes_transferred;
+            done.set_value();
+        });
         
         //std::this_thread::sleep_for(std::chrono::milliseconds(5));  
         fut.wait();

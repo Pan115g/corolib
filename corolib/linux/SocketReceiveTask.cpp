@@ -16,8 +16,42 @@ namespace corolib
     {
     }
 
+    SocketReceiveTask::~SocketReceiveTask()
+    {
+        if (mSocket.isInitialized())
+        {
+            epoll_event ev = { 0, { 0 } };
+            ev.events = IoEventHandler::Default_Events;
+            if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
+                                mSocket.getSocketHandle(), &ev))
+            {
+                mNumberOfBytesReceived = 0;
+            }
+        }
+    }
+
     bool SocketReceiveTask::start()
     {
+        int res = ::recv(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
+        if (res == -1)
+        {
+            if (errno != EAGAIN && errno != EWOULDBLOCK)
+            {
+                const int errorCode = errno;
+                throw std::system_error(
+                    errorCode,
+                    std::system_category(),
+                    "Error receiving socket: send() in start()");
+            }
+        }
+
+        if (res > 0)
+        {
+            mSkipped = true;
+            mNumberOfBytesReceived = res;
+            return false;
+        }
+
         epoll_event ev = { 0, { 0 } };
         ev.events = IoEventHandler::Default_Events;
         ev.data.ptr = this;
@@ -31,25 +65,6 @@ namespace corolib
                 "Error registering socket with epoll");
         }
 
-        int res = ::recv(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
-        if (res > 0)
-        {
-            mSkipped = true;
-            mNumberOfBytesReceived = res;
-            return false;
-        }
-
-        if (res == -1)
-        {
-            if (errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                const int errorCode = errno;
-                throw std::system_error(
-                    errorCode,
-                    std::system_category(),
-                    "Error receiving socket: recv() in start()");
-            }
-        }
         return true;
     }
 
@@ -60,7 +75,8 @@ namespace corolib
             return mNumberOfBytesReceived;
         }
 
-        int res = ::recv(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
+        int res = ::recv(mSocket.getSocketHandle(), mBuffer.data() + mNumberOfBytesReceived, 
+            mBuffer.size() - mNumberOfBytesReceived, 0);
         if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
         {
             const int errorCode = errno;
@@ -72,7 +88,7 @@ namespace corolib
 
         if (res > 0)
         {
-            mNumberOfBytesReceived = res;
+            mNumberOfBytesReceived += res;
         }
         return mNumberOfBytesReceived;
     }

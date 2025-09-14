@@ -1,5 +1,6 @@
 #include "SerialPortReceiveTask.h"
 #include <system_error>
+#include <algorithm>
 #include <sys/epoll.h>
 #include <SerialPort.h>
 #include <IoEventHandler.h>
@@ -14,8 +15,28 @@ namespace corolib
     mBuffer{buffer},
     mDelimiter{delimiter} {}
 
+    SerialPortReceiveTask::~SerialPortReceiveTask()
+    {
+        if (mSerialPort.isInitialized())
+        {
+            epoll_event ev = { 0, { 0 } };
+            ev.events = IoEventHandler::Default_Events;
+            if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
+                                mSerialPort.getFileDescriptor(), &ev))
+            {
+                mNumberOfBytesReceived = 0;
+            }
+        }
+    }
+
     bool SerialPortReceiveTask::start()
     {
+        if (readAndFindDelimiter())
+        {
+            mSkipped = true;
+            return false;
+        }
+
         epoll_event ev = { 0, { 0 } };
         ev.events = IoEventHandler::Default_Events;
         ev.data.ptr = this;
@@ -29,13 +50,7 @@ namespace corolib
                 "Error registering socket with epoll");
         }
 
-        bool suspend = true;
-        if (readAndFindDelimiter())
-        {
-            mSkipped = true;
-            suspend = false;
-        }
-        return suspend;
+        return true;
     }
 
     SerialPortReceiveTask::ReturnType SerialPortReceiveTask::getResult()
@@ -74,7 +89,7 @@ namespace corolib
             }
             return false;
         }
-
+        
         if (res > 0)
         {
             mNumberOfBytesReceived += res;

@@ -1,8 +1,10 @@
 #include <benchmark/benchmark.h>
+#include <future>
 #include <thread>
 #include <malloc.h>
 #include <errno.h>
 #include <cstring>
+#include <termios.h>
 #include "Awaitable.h"
 #include "FireAndForget.h"
 #include "SerialPortReceiveTask.h"
@@ -11,15 +13,16 @@
 #include "SerialPort.h"
 
 corolib::IoEventHandler ioEventHandler;
-corolib::SerialPort serialPort(ioEventHandler, "/tmp/ttyV1", 115200);
+corolib::SerialPort serialPort(ioEventHandler, "/dev/ttyACM0", 115200);
 
 static corolib::Awaitable<> communicate(const std::span<uint8_t> message, auto onFinished)
 {
     std::vector<uint8_t> buffer(message.size());
     std::copy(message.begin(), message.end(), buffer.begin());
     
-    uint32_t numOfBytes = co_await corolib::SerialPortSendTask(ioEventHandler, serialPort, buffer);
-    onFinished(numOfBytes);
+    co_await corolib::SerialPortSendTask(ioEventHandler, serialPort, buffer);
+    auto ret = co_await corolib::SerialPortReceiveTask(ioEventHandler, serialPort, buffer, '\r');
+    onFinished(ret.bytesReceived);
 }
 
 static void BM_SerialSend(benchmark::State& state) {
@@ -30,10 +33,14 @@ static void BM_SerialSend(benchmark::State& state) {
 
     for (auto _ : state)
     {
-        corolib::fireAndForget(communicate(data, [&finishedCounter](const uint64_t n){
+          std::promise<void> done;
+        auto fut = done.get_future();
+        corolib::fireAndForget(communicate(data, [&finishedCounter, &done](const uint64_t n){
           finishedCounter += n;
+          done.set_value();
         }));
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));  
+      //std::this_thread::sleep_for(std::chrono::milliseconds(5));  
+      fut.wait();
     }
     
     std::printf("finished one run %ld %ld\n", finishedCounter, state.iterations() * state.range(0));
@@ -48,7 +55,7 @@ static void BM_SerialSend(benchmark::State& state) {
 }
 
 // Register the function as a benchmark
-BENCHMARK(BM_SerialSend)->Arg(32)->MeasureProcessCPUTime()->Complexity();
+BENCHMARK(BM_SerialSend)->Arg(128)->MeasureProcessCPUTime()->Complexity();
 
 
 
@@ -71,8 +78,16 @@ int connect_serial_port()
     return 0;
 }
 
+void flush()
+{
+    int fd = serialPort.getFileDescriptor();
+    //tcflush(fd, TCIFLUSH);  // clear input buffer
+    // tcflush(fd, TCOFLUSH); // clear output buffer
+    tcflush(fd, TCIOFLUSH); // clear both
+}
 
 int main(int argc, char** argv) {
+    flush();
     connect_serial_port();
 
     benchmark::Initialize(&argc, argv);

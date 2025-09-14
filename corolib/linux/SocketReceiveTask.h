@@ -14,10 +14,7 @@ namespace corolib
         public:
         explicit SocketReceiveTask(IoEventHandler& mIoEventHandler, TcpSocket& socket, std::span<uint8_t> buffer) noexcept;
 
-        ~SocketReceiveTask()
-        {
-
-        }
+        ~SocketReceiveTask();
         
         bool start();
         std::size_t getResult();

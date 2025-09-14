@@ -7,37 +7,46 @@
 #include "TcpSocket.h"
 #include "SocketSendTask.h"
 #include <thread>
+#include <chrono>
+#include <iostream>
+#include <future>
 
 using namespace corolib;
 corolib::IoEventHandler ioEventHandler;
 corolib::TcpSocket serverSocket(ioEventHandler);
 corolib::TcpSocket acceptedSocket(ioEventHandler, corolib::TcpSocket::Invalid_Socket);
 
+std::chrono::time_point<std::chrono::steady_clock> start_time;
+std::chrono::time_point<std::chrono::steady_clock> end_time;
+
 //template<auto onFinished>
 corolib::Awaitable<void> communicate(const std::span<uint8_t> message, auto onFinished)
-{
+{  
     std::vector<uint8_t> buffer(message.size());
     std::copy(message.begin(), message.end(), buffer.begin());
     
-    uint32_t numOfBytes = co_await acceptedSocket.send(buffer);
+    co_await acceptedSocket.send(buffer);
+    uint32_t numOfBytes = co_await acceptedSocket.receive(buffer);
     onFinished(numOfBytes);
 }
 
 static void BM_StringCreation(benchmark::State& state) {
     uint64_t finishedCounter = 0;
     std::vector<uint8_t> data(state.range(0), 'X');
-    uint8_t i = 0;
-    for(auto & c : data) {
-        c = ++i + 30;
-    }
     data[state.range(0) - 1] = '\r'; // Ensure the last
 
+    uint32_t count = 0;
     for (auto _ : state)
-    {
-        corolib::fireAndForget(communicate(data, [&finishedCounter](const uint64_t n){
+    {        
+        data[0] = count++;
+        std::promise<void> done;
+        auto fut = done.get_future();
+        corolib::fireAndForget(communicate(data, [&finishedCounter, &done](const uint64_t n){
           finishedCounter += n;
+          done.set_value();
         }));
-      std::this_thread::sleep_for(std::chrono::milliseconds(5));  
+      //std::this_thread::sleep_for(std::chrono::milliseconds(5)); 
+        fut.wait();
     }
     
     std::printf("finished one run %ld %ld\n", finishedCounter, state.iterations() * state.range(0));
@@ -56,11 +65,9 @@ BENCHMARK(BM_StringCreation)->Arg(1024)->MeasureProcessCPUTime()->Complexity();
 
 corolib::Awaitable<> connect(corolib::TcpSocket& serverSocket, corolib::TcpSocket& acceptedSocket)
 {
-    std::printf("in connect\n");
-    uint8_t ip[4] = {172, 17, 231, 208};
+    uint8_t ip[4] = {0, 0, 0, 0};
     serverSocket.bind(ip, 55555);
     serverSocket.listen();
-    std::printf("client received\n");
     co_await serverSocket.accept(acceptedSocket);
     std::cout << "Connection accepted\n";
 }
@@ -70,7 +77,7 @@ int connect_socket()
 {
     std::printf("before connect\n");
     corolib::fireAndForget(connect(serverSocket, acceptedSocket));
-
+  return 0;
 }
 
 int main(int argc, char** argv) {
@@ -106,6 +113,5 @@ int main(int argc, char** argv) {
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
   benchmark::Shutdown();
-
 
 }

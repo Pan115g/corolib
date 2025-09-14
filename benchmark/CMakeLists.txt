@@ -1,4 +1,5 @@
-find_package (benchmark PATHS "~/tools/benchmark/build_wsl" NO_DEFAULT_PATH REQUIRED)
+find_package (benchmark PATHS "~/tools/benchmark/build_rasp" NO_DEFAULT_PATH REQUIRED)
+
 
 add_executable(corolib_socket "corolib_socket.cpp")
 target_include_directories(corolib_socket PRIVATE  "../corolib")

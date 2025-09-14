@@ -16,7 +16,8 @@ static void BM_StringCreation(benchmark::State& state) {
     for (auto _ : state)
     {
         boost::system::error_code ignored_error;
-        finishedCounter += boost::asio::write(server_socket, boost::asio::buffer(data), ignored_error);
+        boost::asio::write(server_socket, boost::asio::buffer(data), ignored_error);
+        finishedCounter += boost::asio::read(server_socket, boost::asio::buffer(&data[0], state.range(0)), ignored_error);
     }
     
     std::printf("finished one run %ld %ld\n",  finishedCounter, state.iterations() * state.range(0));
@@ -33,11 +34,8 @@ BENCHMARK(BM_StringCreation)->Arg(1024)->Complexity();
 
 int main(int argc, char** argv) {
     try
-    {
-        
-
+    { 
         tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), 55555));
-
         
         acceptor.accept(server_socket);
 
