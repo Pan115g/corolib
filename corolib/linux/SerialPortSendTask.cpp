@@ -29,29 +29,11 @@ namespace corolib
     }
 
     bool SerialPortSendTask::start()
-    {
-        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data(), mBuffer.size());
-
-        if (res == -1)
+    {        
+        if (sendAndCheckNumberOfSentBytes())
         {
-            if (errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                const int errorCode = errno;
-                throw std::system_error(
-                    errorCode,
-                    std::system_category(),
-                    "Error sending serial port: send() in start()");
-            }
-        }
-
-        if (res > 0)
-        {
-            mNumberOfBytesSent = res;
-            if (res == mBuffer.size())
-            {
-                mSkipped = true;
-                return false;
-            }
+            mSkipped = true;
+            return false;
         }
 
         epoll_event ev = { 0, { 0 } };
@@ -70,13 +52,29 @@ namespace corolib
         return true;
     }
 
-    std::size_t SerialPortSendTask::getResult()
+    bool SerialPortSendTask::checkResumeCondition(uint32_t events) noexcept
     {
-        if (mSkipped)
+        if ((events & EPOLLOUT) == 0)
         {
-            return mNumberOfBytesSent;
+            return false;
         }
 
+        if (mSkipped)
+        {
+            return true;
+        }
+
+        mSkipped = sendAndCheckNumberOfSentBytes();
+        return mSkipped;
+    }
+
+    std::size_t SerialPortSendTask::getResult()
+    {
+        return mNumberOfBytesSent;
+    }
+
+    bool SerialPortSendTask::sendAndCheckNumberOfSentBytes()
+    {
         int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data() + mNumberOfBytesSent, mBuffer.size() - mNumberOfBytesSent);
         if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
         {
@@ -84,13 +82,13 @@ namespace corolib
             throw std::system_error(
                 errorCode,
                 std::system_category(),
-                "Error sending serial port: send() in getResult()");
+                "Error sending serial port: send() in checkResumeCondition()");
         }
 
         if (res > 0)
         {
             mNumberOfBytesSent += res;
         }
-        return mNumberOfBytesSent;
+        return mNumberOfBytesSent == mBuffer.size();
     }
 }

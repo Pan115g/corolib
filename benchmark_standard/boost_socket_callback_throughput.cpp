@@ -37,13 +37,11 @@ static void BM_StringCreation(benchmark::State& state) {
     {        
         std::promise<void> done;
         auto fut = done.get_future();
-        async_write(server_socket, boost::asio::buffer(data), [](const boost::system::error_code& ec, std::size_t bytes_transferred){});
-        async_read(server_socket, boost::asio::buffer(data, data.size()), [&finishedCounter, &done](const boost::system::error_code& ec, std::size_t bytes_transferred){
+        async_write(server_socket, boost::asio::buffer(data), [&finishedCounter, &done](const boost::system::error_code& ec, std::size_t bytes_transferred){
             finishedCounter += bytes_transferred;
             done.set_value();
         });
         
-        //std::this_thread::sleep_for(std::chrono::milliseconds(5));  
         fut.wait();
     }
     
@@ -57,7 +55,7 @@ static void BM_StringCreation(benchmark::State& state) {
     state.counters["heap free"] = mi.fordblks;
 }
 // Register the function as a benchmark
-BENCHMARK(BM_StringCreation)->Arg(1024)->MeasureProcessCPUTime()->Complexity();
+BENCHMARK(BM_StringCreation)->Arg(1024 * 16)->MeasureProcessCPUTime()->Complexity();
 
 awaitable<void> listener()
 {

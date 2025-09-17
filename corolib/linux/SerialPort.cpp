@@ -23,7 +23,7 @@ namespace corolib
         }
         mFileDescriptor = s;
 
-        setNonBlockingMode();
+        setNonBlockingMode(true);
         setTerminalAttributes();
         registerWithEpoll();
 
@@ -40,10 +40,11 @@ namespace corolib
         }
     }
 
-    void SerialPort::setNonBlockingMode()
+    void SerialPort::setNonBlockingMode(bool nonBlocking)
     {
         int fileStatus = ::fcntl(mFileDescriptor, F_GETFL);
-        if (::fcntl(mFileDescriptor, F_SETFL, fileStatus | O_NONBLOCK) < 0) 
+        int mode = nonBlocking? fileStatus | O_NONBLOCK : fileStatus & ~O_NONBLOCK;
+        if (::fcntl(mFileDescriptor, F_SETFL, mode) < 0) 
         {
             const int errorCode = errno;
             throw std::system_error(

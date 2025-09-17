@@ -31,24 +31,10 @@ namespace corolib
     }
 
     bool SocketReceiveTask::start()
-    {
-        int res = ::recv(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
-        if (res == -1)
-        {
-            if (errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                const int errorCode = errno;
-                throw std::system_error(
-                    errorCode,
-                    std::system_category(),
-                    "Error receiving socket: send() in start()");
-            }
-        }
-
-        if (res > 0)
+    {        
+        if (readAndFindDelimiter())
         {
             mSkipped = true;
-            mNumberOfBytesReceived = res;
             return false;
         }
 
@@ -68,13 +54,32 @@ namespace corolib
         return true;
     }
 
-    std::size_t SocketReceiveTask::getResult()
+    bool SocketReceiveTask::checkResumeCondition(uint32_t events) noexcept
     {
+        if ((events & EPOLLIN) == 0)
+        {
+            return false;
+        }
         if (mSkipped)
         {
-            return mNumberOfBytesReceived;
+            return true;
         }
 
+        if (readAndFindDelimiter())
+        {
+            mSkipped = true;
+            return true;
+        }
+        return false;
+    }
+
+    std::size_t SocketReceiveTask::getResult()
+    {
+        return mNumberOfBytesReceived;
+    }
+        
+    bool SocketReceiveTask::readAndFindDelimiter()
+    {
         int res = ::recv(mSocket.getSocketHandle(), mBuffer.data() + mNumberOfBytesReceived, 
             mBuffer.size() - mNumberOfBytesReceived, 0);
         if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
@@ -90,6 +95,6 @@ namespace corolib
         {
             mNumberOfBytesReceived += res;
         }
-        return mNumberOfBytesReceived;
+        return mNumberOfBytesReceived == mBuffer.size();
     }
 }

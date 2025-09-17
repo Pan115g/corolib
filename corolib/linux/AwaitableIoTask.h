@@ -43,7 +43,7 @@ namespace corolib
         {
             auto& awaitableTask = static_cast<T&>(*task);
             awaitableTask.mEvents = events;
-            if (awaitableTask.checkResumeCondition())
+            if (awaitableTask.checkResumeCondition(events))
             {
                 awaitableTask.mAwaitingCoroutine.resume();
             }

@@ -19,9 +19,9 @@ namespace corolib
 
             int getFileDescriptor() const { return mFileDescriptor; }
             bool isInitialized() const { return mInitialized; }
+            void setNonBlockingMode(bool);
 
         private:
-            void setNonBlockingMode();
             void setTerminalAttributes();
             void registerWithEpoll();
             void unregisterWithEpoll();

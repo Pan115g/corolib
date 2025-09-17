@@ -26,7 +26,7 @@ namespace corolib
         
         bool start();
         ReturnType getResult();
-        bool checkResumeCondition() noexcept;
+        bool checkResumeCondition(uint32_t events) noexcept;
 
         private:
         bool readAndFindDelimiter();

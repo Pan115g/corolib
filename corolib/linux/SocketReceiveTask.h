@@ -18,9 +18,10 @@ namespace corolib
         
         bool start();
         std::size_t getResult();
-        bool checkResumeCondition() {return true;}
+        bool checkResumeCondition(uint32_t events) noexcept;
         
         private:
+        bool readAndFindDelimiter();
         IoEventHandler& mIoEventHandler;
         TcpSocket& mSocket;
         std::span<uint8_t> mBuffer;

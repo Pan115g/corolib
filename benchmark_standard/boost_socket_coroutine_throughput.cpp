@@ -12,6 +12,7 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read.hpp>
+#include <boost/asio/awaitable.hpp>
 #include <cstdio>
 #include <iostream>
 #include <span>
@@ -29,19 +30,26 @@ std::chrono::time_point<std::chrono::steady_clock> end_time;
 boost::asio::io_context io_context(1);
 tcp::socket server_socket(io_context);
 
+awaitable<void> communicate(const std::span<uint8_t> message, auto onFinished)
+{
+    std::size_t numOfBytes = co_await async_write(server_socket, boost::asio::buffer(message), use_awaitable);
+    //std::size_t numOfBytes = co_await async_read(server_socket, boost::asio::buffer(message, message.size()), use_awaitable);
+    onFinished(numOfBytes);   
+}
+
 static void BM_StringCreation(benchmark::State& state) {
     uint64_t finishedCounter = 0;
     std::vector<uint8_t> data(state.range(0), 'X');
+
     data[state.range(0) - 1] = '\r'; // Ensure the last
     for (auto _ : state)
     {        
         std::promise<void> done;
         auto fut = done.get_future();
-        async_write(server_socket, boost::asio::buffer(data), [](const boost::system::error_code& ec, std::size_t bytes_transferred){});
-        async_read(server_socket, boost::asio::buffer(data, data.size()), [&finishedCounter, &done](const boost::system::error_code& ec, std::size_t bytes_transferred){
-            finishedCounter += bytes_transferred;
-            done.set_value();
-        });
+        co_spawn(io_context, communicate(data, [&finishedCounter, &done](const uint64_t n){
+          finishedCounter += n;
+          done.set_value();
+        }), detached);
         
         //std::this_thread::sleep_for(std::chrono::milliseconds(5));  
         fut.wait();
@@ -57,7 +65,7 @@ static void BM_StringCreation(benchmark::State& state) {
     state.counters["heap free"] = mi.fordblks;
 }
 // Register the function as a benchmark
-BENCHMARK(BM_StringCreation)->Arg(1024)->MeasureProcessCPUTime()->Complexity();
+BENCHMARK(BM_StringCreation)->Arg(1024 * 16)->MeasureProcessCPUTime()->Complexity();
 
 awaitable<void> listener()
 {

@@ -58,8 +58,12 @@ namespace corolib
         return SerialPortReceiveTask::ReturnType{mNumberOfBytesReceived, mBufferIndex};
     }
 
-    bool SerialPortReceiveTask::checkResumeCondition() noexcept
+    bool SerialPortReceiveTask::checkResumeCondition(uint32_t events) noexcept
     {
+        if ((events & EPOLLIN) == 0)
+        {
+            return false;
+        }
         if (mSkipped)
         {
             return true;

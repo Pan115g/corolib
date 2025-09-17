@@ -16,8 +16,8 @@ static void BM_StringCreation(benchmark::State& state) {
     for (auto _ : state)
     {
         boost::system::error_code ignored_error;
-        boost::asio::write(server_socket, boost::asio::buffer(data), ignored_error);
-        finishedCounter += boost::asio::read(server_socket, boost::asio::buffer(&data[0], state.range(0)), ignored_error);
+        finishedCounter += boost::asio::write(server_socket, boost::asio::buffer(data), ignored_error);
+        //finishedCounter += boost::asio::read(server_socket, boost::asio::buffer(&data[0], state.range(0)), ignored_error);
     }
     
     std::printf("finished one run %ld %ld\n",  finishedCounter, state.iterations() * state.range(0));
@@ -30,7 +30,7 @@ static void BM_StringCreation(benchmark::State& state) {
     state.counters["heap free"] = mi.fordblks;
 }
 // Register the function as a benchmark
-BENCHMARK(BM_StringCreation)->Arg(1024)->MeasureProcessCPUTime()->Complexity();
+BENCHMARK(BM_StringCreation)->Arg(1024 * 16)->MeasureProcessCPUTime()->Complexity();
 
 int main(int argc, char** argv) {
     try
