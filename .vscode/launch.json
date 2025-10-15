@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Remote gdbserver (Pi)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/benchmark/corolib_socket_throughput", 
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb-multiarch",
+      "miDebuggerServerAddress": "<remote-ip>:55500",
+      "cwd": "${workspaceFolder}",
+      "targetArchitecture": "arm64",
+      "externalConsole": true,
+      "setupCommands": [
+        { "description": "Enable pretty-printing", "text": "-enable-pretty-printing" }
+      ]
+    }
+  ]
+}
