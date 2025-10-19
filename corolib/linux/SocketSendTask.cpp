@@ -16,8 +16,28 @@ namespace corolib
     {
     }
 
-    bool SocketSendTask::start()
+    SocketSendTask::~SocketSendTask()
     {
+        if (mSocket.isInitialized())
+        {
+            epoll_event ev = { 0, { 0 } };
+            ev.events = IoEventHandler::Default_Events & ~EPOLLOUT;
+            if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
+                                mSocket.getSocketHandle(), &ev))
+            {
+                mNumberOfBytesSent = 0;
+            }
+        }
+    }
+
+    bool SocketSendTask::start()
+    {        
+        if (sendAndCheckNumberOfSentBytes())
+        {
+            mSkipped = true;
+            return false;
+        }
+
         epoll_event ev = { 0, { 0 } };
         ev.events = IoEventHandler::Default_Events | EPOLLOUT;
         ev.data.ptr = this;
@@ -30,37 +50,33 @@ namespace corolib
                 std::system_category(),
                 "Error registering socket with epoll");
         }
+        return true;
+    }
 
-        int res = ::send(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
-        if (res > 0)
+    bool SocketSendTask::checkResumeCondition(uint32_t events) noexcept
+    {
+        if ((events & EPOLLOUT) == 0)
         {
-            mSkipped = true;
-            mNumberOfBytesSent = res;
             return false;
         }
 
-        if (res == -1)
+        if (mSkipped)
         {
-            if (errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                const int errorCode = errno;
-                throw std::system_error(
-                    errorCode,
-                    std::system_category(),
-                    "Error receiving socket: send() in start()");
-            }
+            return true;
         }
-        return true;
+
+        mSkipped = sendAndCheckNumberOfSentBytes();
+        return mSkipped;
     }
 
     std::size_t SocketSendTask::getResult()
     {
-        if (mSkipped)
-        {
-            return mNumberOfBytesSent;
-        }
-
-        int res = ::send(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
+        return mNumberOfBytesSent;
+    }
+    
+    bool SocketSendTask::sendAndCheckNumberOfSentBytes()
+    {        
+        int res = ::send(mSocket.getSocketHandle(), mBuffer.data() + mNumberOfBytesSent, mBuffer.size() - mNumberOfBytesSent, 0);
         if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
         {
             const int errorCode = errno;
@@ -72,8 +88,9 @@ namespace corolib
 
         if (res > 0)
         {
-            mNumberOfBytesSent = res;
+            mNumberOfBytesSent += res;
         }
-        return mNumberOfBytesSent;
+
+        return mNumberOfBytesSent == mBuffer.size();
     }
 }

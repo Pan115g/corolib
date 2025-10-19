@@ -22,14 +22,11 @@ namespace corolib
             const uint8_t delimiter) noexcept;
 
         SerialPortReceiveTask(const SerialPortReceiveTask&) = delete;
-        ~SerialPortReceiveTask()
-        {
-
-        }
+        ~SerialPortReceiveTask();
         
         bool start();
         ReturnType getResult();
-        bool checkResumeCondition() noexcept;
+        bool checkResumeCondition(uint32_t events) noexcept;
 
         private:
         bool readAndFindDelimiter();

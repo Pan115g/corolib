@@ -22,7 +22,7 @@ namespace corolib
         bool start();
 
         void getResult();
-        bool checkResumeCondition() {return true;}
+        bool checkResumeCondition(uint32_t events) noexcept {return true;}
         
         private:
         IoEventHandler& mIoEventHandler;

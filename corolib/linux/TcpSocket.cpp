@@ -88,6 +88,7 @@ namespace corolib
 
         setNonBlockingMode();
         registerWithEpoll();
+        mInitialized = true;
     }
 
     void TcpSocket::setNonBlockingMode()

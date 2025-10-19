@@ -14,8 +14,28 @@ namespace corolib
     {
     }
 
-    bool SerialPortSendTask::start()
+    SerialPortSendTask::~SerialPortSendTask()
     {
+        if (mSerialPort.isInitialized())
+        {
+            epoll_event ev = { 0, { 0 } };
+            ev.events = IoEventHandler::Default_Events & ~EPOLLOUT;
+            if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
+                                mSerialPort.getFileDescriptor(), &ev))
+            {
+                mNumberOfBytesSent = 0;
+            }
+        }
+    }
+
+    bool SerialPortSendTask::start()
+    {        
+        if (sendAndCheckNumberOfSentBytes())
+        {
+            mSkipped = true;
+            return false;
+        }
+
         epoll_event ev = { 0, { 0 } };
         ev.events = IoEventHandler::Default_Events | EPOLLOUT;
         ev.data.ptr = this;
@@ -29,49 +49,46 @@ namespace corolib
                 "Error registering serial port with epoll");
         }
 
-        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data(), mBuffer.size());
-        if (res > 0)
+        return true;
+    }
+
+    bool SerialPortSendTask::checkResumeCondition(uint32_t events) noexcept
+    {
+        if ((events & EPOLLOUT) == 0)
         {
-            mSkipped = true;
-            mNumberOfBytesSent = res;
             return false;
         }
 
-        if (res == -1)
+        if (mSkipped)
         {
-            if (errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                const int errorCode = errno;
-                throw std::system_error(
-                    errorCode,
-                    std::system_category(),
-                    "Error receiving serial port: send() in start()");
-            }
+            return true;
         }
-        return true;
+
+        mSkipped = sendAndCheckNumberOfSentBytes();
+        return mSkipped;
     }
 
     std::size_t SerialPortSendTask::getResult()
     {
-        if (mSkipped)
-        {
-            return mNumberOfBytesSent;
-        }
+        return mNumberOfBytesSent;
+    }
 
-        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data(), mBuffer.size());
+    bool SerialPortSendTask::sendAndCheckNumberOfSentBytes()
+    {
+        int res = ::write(mSerialPort.getFileDescriptor(), mBuffer.data() + mNumberOfBytesSent, mBuffer.size() - mNumberOfBytesSent);
         if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
         {
             const int errorCode = errno;
             throw std::system_error(
                 errorCode,
                 std::system_category(),
-                "Error receiving serial port: send() in getResult()");
+                "Error sending serial port: send() in checkResumeCondition()");
         }
 
         if (res > 0)
         {
-            mNumberOfBytesSent = res;
+            mNumberOfBytesSent += res;
         }
-        return mNumberOfBytesSent;
+        return mNumberOfBytesSent == mBuffer.size();
     }
 }

@@ -14,16 +14,14 @@ namespace corolib
         public:        
         explicit SerialPortSendTask(IoEventHandler& mIoEventHandler, SerialPort& serialPort, const std::span<uint8_t> buffer) noexcept;
 
-        ~SerialPortSendTask()
-        {
-
-        }
+        ~SerialPortSendTask();
         
         bool start();
         std::size_t getResult();
-        bool checkResumeCondition() {return true;}
+        bool checkResumeCondition(uint32_t events) noexcept;
 
         private:
+        bool sendAndCheckNumberOfSentBytes();
         IoEventHandler& mIoEventHandler;
         SerialPort& mSerialPort;
         std::span<uint8_t> mBuffer;

@@ -52,6 +52,24 @@
         "semaphore": "cpp",
         "span": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "any": "cpp",
+        "codecvt": "cpp",
+        "condition_variable": "cpp",
+        "csignal": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "source_location": "cpp",
+        "future": "cpp",
+        "mutex": "cpp",
+        "shared_mutex": "cpp",
+        "sstream": "cpp",
+        "cinttypes": "cpp",
+        "variant": "cpp",
+        "complex": "cpp",
+        "optional": "cpp",
+        "iomanip": "cpp",
+        "typeindex": "cpp"
     }
 }

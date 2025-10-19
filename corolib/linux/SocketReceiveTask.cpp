@@ -16,8 +16,28 @@ namespace corolib
     {
     }
 
-    bool SocketReceiveTask::start()
+    SocketReceiveTask::~SocketReceiveTask()
     {
+        if (mSocket.isInitialized())
+        {
+            epoll_event ev = { 0, { 0 } };
+            ev.events = IoEventHandler::Default_Events;
+            if (0 != epoll_ctl(mIoEventHandler.getEpollFileDescriptor(), EPOLL_CTL_MOD, 
+                                mSocket.getSocketHandle(), &ev))
+            {
+                mNumberOfBytesReceived = 0;
+            }
+        }
+    }
+
+    bool SocketReceiveTask::start()
+    {        
+        if (readAndFindDelimiter())
+        {
+            mSkipped = true;
+            return false;
+        }
+
         epoll_event ev = { 0, { 0 } };
         ev.events = IoEventHandler::Default_Events;
         ev.data.ptr = this;
@@ -31,36 +51,37 @@ namespace corolib
                 "Error registering socket with epoll");
         }
 
-        int res = ::recv(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
-        if (res > 0)
+        return true;
+    }
+
+    bool SocketReceiveTask::checkResumeCondition(uint32_t events) noexcept
+    {
+        if ((events & EPOLLIN) == 0)
         {
-            mSkipped = true;
-            mNumberOfBytesReceived = res;
             return false;
         }
-
-        if (res == -1)
+        if (mSkipped)
         {
-            if (errno != EAGAIN && errno != EWOULDBLOCK)
-            {
-                const int errorCode = errno;
-                throw std::system_error(
-                    errorCode,
-                    std::system_category(),
-                    "Error receiving socket: recv() in start()");
-            }
+            return true;
         }
-        return true;
+
+        if (readAndFindDelimiter())
+        {
+            mSkipped = true;
+            return true;
+        }
+        return false;
     }
 
     std::size_t SocketReceiveTask::getResult()
     {
-        if (mSkipped)
-        {
-            return mNumberOfBytesReceived;
-        }
-
-        int res = ::recv(mSocket.getSocketHandle(), mBuffer.data(), mBuffer.size(), 0);
+        return mNumberOfBytesReceived;
+    }
+        
+    bool SocketReceiveTask::readAndFindDelimiter()
+    {
+        int res = ::recv(mSocket.getSocketHandle(), mBuffer.data() + mNumberOfBytesReceived, 
+            mBuffer.size() - mNumberOfBytesReceived, 0);
         if (res == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
         {
             const int errorCode = errno;
@@ -72,8 +93,8 @@ namespace corolib
 
         if (res > 0)
         {
-            mNumberOfBytesReceived = res;
+            mNumberOfBytesReceived += res;
         }
-        return mNumberOfBytesReceived;
+        return mNumberOfBytesReceived == mBuffer.size();
     }
 }
