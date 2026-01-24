@@ -90,3 +90,6 @@ git clone /mnt/c/path_to_remote_repository
 ```
  git config --global core.autocrlf false
 ```
+
+# Publications
+* **Coroutine-basierte I/O-Kommunikation in eingebetteten Systemen**, Pan Li, *Tagungsband Embedded Software Engineering Kongress 2025*, 2025 [Link](https://ese-kongress.de/frontend/index.php?page_id=45441)
